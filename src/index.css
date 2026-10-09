@@ -1,0 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { font-family: Inter, system-ui, sans-serif; color: #1e293b; background: #f1f5f9; }
+html, body, #root { height: 100%; margin: 0; }
+body { overflow: hidden; }
+.dot-pattern { background-color:#eaf3f3; background-image:radial-gradient(#b2d8d8 .85px, transparent .85px); background-size:16px 16px; }
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(150,180,185,.4); border-radius:9999px; }
+::-webkit-scrollbar-thumb:hover { background:rgba(100,150,160,.6); }
+* { box-sizing:border-box; }
+button, input, select, textarea { font:inherit; }
