@@ -23,10 +23,23 @@ import {
   ArrowRight,
   Sparkles,
   Calendar,
-  GripVertical
+  GripVertical,
+  X,
+  FileText
 } from 'lucide-react'
 import { crmStages } from '../data/seedData'
 import Modal from '../components/Modal'
+
+function getSourceBadgeStyle(source) {
+  const s = (source || '').toLowerCase()
+  if (s.includes('instagram')) return 'bg-pink-50 text-pink-700 border-pink-200'
+  if (s.includes('whatsapp')) return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+  if (s.includes('google')) return 'bg-blue-50 text-blue-700 border-blue-200'
+  if (s.includes('recomend')) return 'bg-purple-50 text-purple-700 border-purple-200'
+  if (s.includes('paseo') || s.includes('fachada')) return 'bg-amber-50 text-amber-700 border-amber-200'
+  if (s.includes('facebook')) return 'bg-indigo-50 text-indigo-700 border-indigo-200'
+  return 'bg-slate-100 text-slate-700 border-slate-200'
+}
 
 const PERIOD_OPTIONS = [
   { id: 'all', label: 'Todo el historial' },
@@ -70,9 +83,10 @@ export default function CRM({ data, setData, toast }) {
   const [waitlistCenter, setWaitlistCenter] = useState('ALL')
   const [waitlistRoom, setWaitlistRoom] = useState('ALL')
 
-  // Modals
+  // Modals & Drawer
   const [addModal, setAddModal] = useState(false)
-  const [detailModal, setDetailModal] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerTab, setDrawerTab] = useState('resumen') // 'resumen' | 'actividad'
   const [scheduleModal, setScheduleModal] = useState(false)
   const [selectedLead, setSelectedLead] = useState(null)
   const [newActivityNote, setNewActivityNote] = useState('')
@@ -263,6 +277,22 @@ export default function CRM({ data, setData, toast }) {
     }))
     const stageMeta = STAGE_ORDER.find(s => s.id === targetStageId)
     toast(`"${lead.childName || lead.parentName}" movido a "${stageMeta?.label || targetStageId}"`)
+  }
+
+  // Delete lead with confirmation
+  const handleDeleteLeadWithConfirm = lead => {
+    const name = lead.childName ? `${lead.childName} (Tutor: ${lead.parentName})` : lead.parentName
+    if (confirm(`¿Estás seguro de eliminar el prospecto de "${name}"? Esta acción no se puede deshacer.`)) {
+      setData(d => ({
+        ...d,
+        leads: d.leads.filter(l => l.id !== lead.id)
+      }))
+      if (selectedLead?.id === lead.id) {
+        setDrawerOpen(false)
+        setSelectedLead(null)
+      }
+      toast('Prospecto eliminado correctamente')
+    }
   }
 
   // Formalize Enrollment (promotes lead to Fidelizado and registers family & child)
@@ -841,114 +871,55 @@ export default function CRM({ data, setData, toast }) {
                                   setDraggedLeadId(null)
                                   setDragOverStageId(null)
                                 }}
-                                className={`bg-white rounded-xl border p-3.5 shadow-xs transition-all space-y-2.5 select-none ${
+                                onClick={() => {
+                                  setSelectedLead(lead)
+                                  setDrawerOpen(true)
+                                  setDrawerTab('resumen')
+                                }}
+                                className={`bg-white rounded-xl border p-3.5 shadow-xs transition-all space-y-2 select-none group ${
                                   isBeingDragged
                                     ? 'opacity-40 scale-95 border-teal-500 ring-2 ring-teal-400 shadow-lg'
-                                    : 'border-slate-200/90 hover:border-teal-300 hover:shadow-md cursor-grab active:cursor-grabbing'
+                                    : 'border-slate-200/90 hover:border-teal-400 hover:shadow-md cursor-pointer'
                                 }`}
                               >
-                                {/* Card Top: Baby name and Age */}
-                                <div className="flex justify-between items-start gap-1">
-                                  <div className="flex items-start gap-1.5 min-w-0">
-                                    <GripVertical
-                                      size={14}
-                                      className="text-slate-300 shrink-0 mt-0.5 cursor-grab"
-                                    />
-                                    <div>
-                                      <div className="flex items-center gap-1 text-xs font-bold text-slate-800">
-                                        <Baby size={13} className="text-teal-700" />
-                                        <span className="truncate">{lead.childName}</span>
-                                      </div>
-                                      {lead.age && (
-                                        <span className="text-[10px] text-teal-800 bg-teal-50 px-1.5 py-0.2 rounded font-semibold mt-0.5 inline-block">
-                                          {lead.age}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <span className="text-[9px] text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 shrink-0">
-                                    {lead.source || 'Directo'}
+                                {/* Fila 1: Nombre del prospecto + Icono para eliminar */}
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <h4
+                                    className="text-xs font-bold text-slate-800 truncate flex-1"
+                                    title={lead.parentName}
+                                  >
+                                    {lead.parentName}
+                                  </h4>
+                                  <button
+                                    type="button"
+                                    onClick={e => {
+                                      e.stopPropagation()
+                                      handleDeleteLeadWithConfirm(lead)
+                                    }}
+                                    className="p-1 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition shrink-0 opacity-70 group-hover:opacity-100"
+                                    title="Eliminar prospecto"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+
+                                {/* Fila 2: Nombre del bebé */}
+                                <div className="flex items-center gap-1.5 text-xs text-slate-600 min-w-0">
+                                  <Baby size={13} className="text-teal-600 shrink-0" />
+                                  <span className="truncate font-medium" title={lead.childName}>
+                                    {lead.childName}
                                   </span>
                                 </div>
 
-                                {/* Parent Contact Info */}
-                                <div className="text-[11px] text-slate-600 space-y-1 pt-1 border-t border-slate-100">
-                                  <div className="flex items-center gap-1.5 truncate">
-                                    <UserRound size={12} className="text-slate-400 shrink-0" />
-                                    <span className="font-medium truncate">{lead.parentName}</span>
-                                  </div>
-                                  {lead.phone && (
-                                    <div className="flex items-center gap-1.5 text-slate-500">
-                                      <Phone size={11} className="text-slate-400 shrink-0" />
-                                      <span>{lead.phone}</span>
-                                    </div>
-                                  )}
-                                  {lead.email && (
-                                    <div className="flex items-center gap-1.5 text-slate-500 truncate">
-                                      <Mail size={11} className="text-slate-400 shrink-0" />
-                                      <span className="truncate">{lead.email}</span>
-                                    </div>
-                                  )}
-                                  <div className="flex items-center gap-1.5 text-slate-500 truncate">
-                                    <DoorOpen size={11} className="text-slate-400 shrink-0" />
-                                    <span className="truncate">{lead.targetRoom || 'Sin sala'}</span>
-                                  </div>
-                                  {lead.assignedTo && (
-                                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
-                                      <UserCheck size={11} className="text-teal-600 shrink-0" />
-                                      <span className="truncate">{lead.assignedTo}</span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Card Actions */}
-                                <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                                  {/* Quick Stage Switcher */}
-                                  <select
-                                    value={stage.id}
-                                    onChange={e => moveLeadStage(lead.id, e.target.value)}
-                                    className="w-full text-[10px] font-semibold bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-slate-700 outline-none"
+                                {/* Fila 3: Etiqueta de origen */}
+                                <div className="pt-1 flex items-center justify-between">
+                                  <span
+                                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${getSourceBadgeStyle(
+                                      lead.source
+                                    )}`}
                                   >
-                                    {STAGE_ORDER.map(s => (
-                                      <option key={s.id} value={s.id}>
-                                        Mover a: {s.label}
-                                      </option>
-                                    ))}
-                                  </select>
-
-                                  <div className="flex items-center justify-between gap-1 pt-0.5">
-                                    {/* Schedule Sample Class if not yet scheduled */}
-                                    {['Consulta', 'Agenda Clase Muestra'].includes(
-                                      normalizeStage(lead.stage)
-                                    )} && (
-                                      <button
-                                        onClick={() => openScheduleClass(lead)}
-                                        className="text-[10px] font-bold text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded-lg transition"
-                                      >
-                                        Agendar clase
-                                      </button>
-                                    )}
-
-                                    {/* Enroll button if in Pendiente de confirmación */}
-                                    {normalizeStage(lead.stage) === 'Pendiente de confirmación' && (
-                                      <button
-                                        onClick={() => enrollLead(lead)}
-                                        className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg transition"
-                                      >
-                                        Inscribir
-                                      </button>
-                                    )}
-
-                                    <button
-                                      onClick={() => {
-                                        setSelectedLead(lead)
-                                        setDetailModal(true)
-                                      }}
-                                      className="ml-auto text-[10px] text-teal-700 font-semibold hover:underline"
-                                    >
-                                      Ver detalle
-                                    </button>
-                                  </div>
+                                    {lead.source || 'Directo'}
+                                  </span>
                                 </div>
                               </div>
                             )
@@ -1136,7 +1107,8 @@ export default function CRM({ data, setData, toast }) {
                           <button
                             onClick={() => {
                               setSelectedLead(lead)
-                              setDetailModal(true)
+                              setDrawerOpen(true)
+                              setDrawerTab('resumen')
                             }}
                             className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-semibold transition"
                           >
@@ -1659,146 +1631,310 @@ export default function CRM({ data, setData, toast }) {
           </div>
         </Modal>
 
-        {/* MODAL: DETALLE Y EDICIÓN DEL PROSPECTO */}
-        <Modal
-          open={detailModal && !!selectedLead}
-          onClose={() => setDetailModal(false)}
-          title={`Expediente · ${selectedLead?.childName || ''}`}
-          width="max-w-2xl"
+        {/* SIDEBAR DERECHO DE DETALLE DEL PROSPECTO (RESUMEN Y ACTIVIDAD) */}
+        {drawerOpen && selectedLead && (
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 transition-opacity"
+            onClick={() => setDrawerOpen(false)}
+          />
+        )}
+
+        <aside
+          className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[500px] md:w-[540px] bg-white shadow-2xl flex flex-col border-l border-slate-200 transform transition-transform duration-300 ease-in-out ${
+            drawerOpen && selectedLead ? 'translate-x-0' : 'translate-x-full pointer-events-none'
+          }`}
         >
           {selectedLead && (
-            <div className="space-y-5">
-              {/* Top Banner */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Estado actual</span>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span
-                      className={`w-2.5 h-2.5 rounded-full ${
-                        STAGE_ORDER.find(s => matchStage(selectedLead.stage, s.id))?.color || 'bg-slate-400'
-                      }`}
-                    />
-                    <span className="text-sm font-bold text-slate-800">
-                      {STAGE_ORDER.find(s => matchStage(selectedLead.stage, s.id))?.label || selectedLead.stage}
-                    </span>
+            <>
+              {/* Header del Sidebar */}
+              <div className="p-5 border-b border-slate-100 bg-slate-50/80 flex items-start justify-between gap-3 shrink-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="p-2 bg-teal-100 text-teal-800 rounded-xl shrink-0">
+                    <Baby size={18} />
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="text-base font-bold text-slate-800 truncate" title={selectedLead.childName}>
+                      {selectedLead.childName}
+                    </h2>
+                    <p className="text-xs text-slate-500 truncate">
+                      Prospecto: <strong className="text-slate-700">{selectedLead.parentName}</strong>
+                    </p>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <select
-                    value={normalizeStage(selectedLead.stage)}
-                    onChange={e => {
-                      moveLeadStage(selectedLead.id, e.target.value)
-                      setSelectedLead({ ...selectedLead, stage: e.target.value })
-                    }}
-                    className="text-xs font-semibold p-2 border border-slate-200 rounded-xl bg-white text-slate-700"
-                  >
-                    {STAGE_ORDER.map(s => (
-                      <option key={s.id} value={s.id}>
-                        Cambiar a: {s.label}
-                      </option>
-                    ))}
-                  </select>
-
-                  <button
-                    onClick={() => removeLead(selectedLead.id)}
-                    className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl border border-rose-200 transition"
-                    title="Eliminar prospecto"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Grid with Contact and Child Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 bg-white border border-slate-100 rounded-xl space-y-2">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                    Datos del Responsable
-                  </span>
-                  <div className="text-xs font-bold text-slate-800">{selectedLead.parentName}</div>
-                  <div className="text-xs text-slate-500">Tel: {selectedLead.phone || 'Sin registrar'}</div>
-                  <div className="text-xs text-slate-500">Correo: {selectedLead.email || 'Sin registrar'}</div>
-                </div>
-
-                <div className="p-4 bg-white border border-slate-100 rounded-xl space-y-2">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                    Datos del Alumno
-                  </span>
-                  <div className="text-xs font-bold text-slate-800">{selectedLead.childName}</div>
-                  <div className="text-xs text-slate-500">Edad: {selectedLead.age || 'No especificada'}</div>
-                  <div className="text-xs text-slate-500">Sala solicitada: {selectedLead.targetRoom}</div>
-                  <div className="text-xs text-slate-500">Centro: {selectedLead.centerName}</div>
-                </div>
-              </div>
-
-              {/* Actions row */}
-              <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
                 <button
-                  onClick={() => openScheduleClass(selectedLead)}
-                  className="flex-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                  type="button"
+                  onClick={() => setDrawerOpen(false)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition shrink-0"
+                  title="Cerrar panel lateral"
                 >
-                  <CalendarDays size={14} />
-                  <span>Agendar Clase Muestra</span>
-                </button>
-
-                <button
-                  onClick={() => enrollLead(selectedLead)}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm transition"
-                >
-                  <CheckCircle2 size={14} />
-                  <span>Formalizar Inscripción</span>
+                  <X size={18} />
                 </button>
               </div>
 
-              {/* Activity History and Notes */}
-              <div className="space-y-3 pt-2 border-t border-slate-100">
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide block">
-                  Historial de Interacciones y Seguimiento
-                </span>
+              {/* Selector de pestañas: Resumen vs Actividad */}
+              <div className="flex border-b border-slate-200 px-5 pt-2 bg-white gap-4 text-xs font-semibold shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setDrawerTab('resumen')}
+                  className={`pb-3 border-b-2 flex items-center gap-1.5 transition ${
+                    drawerTab === 'resumen'
+                      ? 'border-teal-700 text-teal-800 font-bold'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <FileText size={14} />
+                  <span>Resumen</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDrawerTab('actividad')}
+                  className={`pb-3 border-b-2 flex items-center gap-1.5 transition ${
+                    drawerTab === 'actividad'
+                      ? 'border-teal-700 text-teal-800 font-bold'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Clock size={14} />
+                  <span>Actividad</span>
+                  <span className="text-[10px] px-1.5 py-0.2 bg-slate-100 rounded-full text-slate-600 font-bold">
+                    {(selectedLead.activities || []).length}
+                  </span>
+                </button>
+              </div>
 
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newActivityNote}
-                    onChange={e => setNewActivityNote(e.target.value)}
-                    placeholder="Escribir nota de seguimiento (llamada, mensaje, visita)..."
-                    className="flex-1 p-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-teal-600"
-                    onKeyDown={e => e.key === 'Enter' && addActivityNote()}
-                  />
-                  <button
-                    onClick={addActivityNote}
-                    className="px-4 py-2 bg-slate-800 text-white text-xs font-semibold rounded-xl hover:bg-slate-900 transition"
-                  >
-                    Agregar
-                  </button>
-                </div>
-
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {(selectedLead.activities || []).length === 0 ? (
-                    <div className="text-xs text-slate-400 italic">Sin notas registradas.</div>
-                  ) : (
-                    (selectedLead.activities || [])
-                      .slice()
-                      .reverse()
-                      .map((act, index) => (
-                        <div
-                          key={act.id || index}
-                          className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs text-slate-700 space-y-0.5"
-                        >
-                          <div className="flex justify-between text-[10px] text-slate-400 font-semibold">
-                            <span>Registro</span>
-                            <span>{act.date || 'Reciente'}</span>
-                          </div>
-                          <p>{act.text}</p>
+              {/* Contenido del Sidebar */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                {drawerTab === 'resumen' ? (
+                  /* SECCIÓN 1: RESUMEN (Datos completos del prospecto, bebé, contacto, servicio y etapa) */
+                  <div className="space-y-4">
+                    {/* Estado actual & Selector de Etapa */}
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Etapa actual</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span
+                            className={`w-2.5 h-2.5 rounded-full ${
+                              STAGE_ORDER.find(s => matchStage(selectedLead.stage, s.id))?.color || 'bg-slate-400'
+                            }`}
+                          />
+                          <span className="text-xs font-bold text-slate-800">
+                            {STAGE_ORDER.find(s => matchStage(selectedLead.stage, s.id))?.label || selectedLead.stage}
+                          </span>
                         </div>
-                      ))
-                  )}
-                </div>
+                      </div>
+
+                      <select
+                        value={normalizeStage(selectedLead.stage)}
+                        onChange={e => {
+                          moveLeadStage(selectedLead.id, e.target.value)
+                          setSelectedLead({ ...selectedLead, stage: e.target.value })
+                        }}
+                        className="text-xs font-semibold p-2 border border-slate-200 rounded-xl bg-white text-slate-700 outline-none focus:border-teal-600"
+                      >
+                        {STAGE_ORDER.map(s => (
+                          <option key={s.id} value={s.id}>
+                            Cambiar a: {s.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Datos del Prospecto (Contacto / Tutor) */}
+                    <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-2.5 shadow-2xs">
+                      <div className="text-[11px] uppercase font-bold text-teal-800 tracking-wider flex items-center gap-1.5">
+                        <UserRound size={13} />
+                        <span>Datos del Prospecto / Tutor</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Nombre del contacto</span>
+                          <span className="font-semibold text-slate-800">{selectedLead.parentName}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Teléfono</span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <a
+                              href={`tel:${selectedLead.phone}`}
+                              className="font-semibold text-teal-700 hover:underline flex items-center gap-1"
+                            >
+                              <Phone size={12} /> {selectedLead.phone || 'Sin registrar'}
+                            </a>
+                            {selectedLead.phone && (
+                              <a
+                                href={`https://wa.me/${selectedLead.phone.replace(/\D/g, '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[10px] px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md font-semibold hover:bg-emerald-100"
+                              >
+                                WhatsApp
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <span className="text-slate-400 block text-[10px]">Correo electrónico</span>
+                          {selectedLead.email ? (
+                            <a
+                              href={`mailto:${selectedLead.email}`}
+                              className="font-semibold text-teal-700 hover:underline flex items-center gap-1 mt-0.5"
+                            >
+                              <Mail size={12} /> {selectedLead.email}
+                            </a>
+                          ) : (
+                            <span className="text-slate-400 italic">No registrado</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Datos del Bebé */}
+                    <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-2.5 shadow-2xs">
+                      <div className="text-[11px] uppercase font-bold text-teal-800 tracking-wider flex items-center gap-1.5">
+                        <Baby size={13} />
+                        <span>Datos del Bebé</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Nombre del bebé</span>
+                          <span className="font-semibold text-slate-800">{selectedLead.childName}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Edad</span>
+                          <span className="font-semibold text-slate-800">{selectedLead.age || 'No especificada'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Fecha de nacimiento</span>
+                          <span className="font-semibold text-slate-800">{selectedLead.dob || 'No registrada'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Género</span>
+                          <span className="font-semibold text-slate-800">{selectedLead.gender || 'No especificado'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Servicio, Centro y Contacto */}
+                    <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-2.5 shadow-2xs">
+                      <div className="text-[11px] uppercase font-bold text-teal-800 tracking-wider flex items-center gap-1.5">
+                        <Building2 size={13} />
+                        <span>Servicio, Centro y Captación</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Centro / Sede</span>
+                          <span className="font-semibold text-slate-800">{selectedLead.centerName}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Sala de interés</span>
+                          <span className="font-semibold text-slate-800">{selectedLead.targetRoom}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Canal de origen</span>
+                          <span className={`inline-block mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${getSourceBadgeStyle(selectedLead.source)}`}>
+                            {selectedLead.source || 'Directo'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Especialista asignado</span>
+                          <span className="font-semibold text-slate-800">{selectedLead.assignedTo || 'Sin asignar'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Acciones principales */}
+                    <div className="space-y-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => openScheduleClass(selectedLead)}
+                        className="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition"
+                      >
+                        <CalendarDays size={14} />
+                        <span>Agendar Clase Muestra en Calendarios</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => enrollLead(selectedLead)}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition"
+                      >
+                        <CheckCircle2 size={14} />
+                        <span>Formalizar Inscripción de Alumno</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteLeadWithConfirm(selectedLead)}
+                        className="w-full border border-rose-200 text-rose-600 hover:bg-rose-50 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition"
+                      >
+                        <Trash2 size={14} />
+                        <span>Eliminar prospecto</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* SECCIÓN 2: ACTIVIDAD (Historial de interacciones) */
+                  <div className="space-y-4">
+                    {/* Input para nueva interacción */}
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 block">
+                        Registrar nueva interacción
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={newActivityNote}
+                        onChange={e => setNewActivityNote(e.target.value)}
+                        placeholder="Escribe detalles de llamada, mensaje de WhatsApp, visita presencial o acuerdo..."
+                        className="w-full p-2.5 text-xs border border-slate-200 rounded-xl outline-none focus:border-teal-600 bg-white resize-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={addActivityNote}
+                        className="w-full bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold py-2 rounded-xl transition"
+                      >
+                        Guardar interacción
+                      </button>
+                    </div>
+
+                    {/* Timeline de interacciones */}
+                    <div className="space-y-3">
+                      <div className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                        Historial cronológico ({selectedLead.activities?.length || 0})
+                      </div>
+
+                      {(selectedLead.activities || []).length === 0 ? (
+                        <div className="p-8 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl space-y-1">
+                          <Clock size={24} className="mx-auto text-slate-300 stroke-1" />
+                          <p className="text-xs font-medium">Sin interacciones registradas aún.</p>
+                          <p className="text-[10px] text-slate-400">
+                            Utiliza la caja de arriba para registrar llamadas, citas o mensajes.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="relative pl-6 space-y-3 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                          {(selectedLead.activities || [])
+                            .slice()
+                            .reverse()
+                            .map((act, idx) => (
+                              <div key={act.id || idx} className="relative group">
+                                <span className="absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full bg-teal-600 ring-4 ring-white" />
+                                <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-1">
+                                  <div className="flex justify-between items-center text-[10px]">
+                                    <span className="font-semibold text-teal-800">Interacción</span>
+                                    <span className="text-slate-400">{act.date || 'Reciente'}</span>
+                                  </div>
+                                  <p className="text-xs text-slate-700 whitespace-pre-wrap">{act.text}</p>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
+            </>
           )}
-        </Modal>
+        </aside>
 
         {/* MODAL: AGENDAR CLASE MUESTRA EN CALENDARIOS */}
         <Modal
