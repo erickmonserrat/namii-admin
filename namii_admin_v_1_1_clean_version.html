@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Namii Admin V_1.1 - Gestión de Centros Educativos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'namii-admin-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "demo-api-key",
+            authDomain: "demo-project.firebaseapp.com",
+            projectId: "demo-project",
+            storageBucket: "demo-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            const initAuth = async () => {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        const userCred = await signInWithCustomToken(auth, __initial_auth_token);
+                        currentUser = userCred.user;
+                    } else {
+                        const userCred = await signInAnonymously(auth);
+                        currentUser = userCred.user;
+                    }
+                    window.dbUser = currentUser;
+                    setupRoomsSnapshot();
+                    setupFamiliesSnapshot();
+                    setupChildrenSnapshot();
+                    setupLeadsSnapshot();
+                    setupStaffSnapshot();
+                    setupCentersSnapshot();
+                } catch (err) {
+                    console.error("Error initializing auth:", err);
+                }
+            };
+            initAuth();
+        } catch (e) {
+            console.error("Firebase Initialization Error:", e);
+        }
+
+        function setupRoomsSnapshot() {
+            if (!db || !currentUser) return;
+            const roomsRef = collection(db, 'artifacts', appId, 'public', 'data', 'rooms');
+            onSnapshot(roomsRef, (snapshot) => {
+                const fetched = [];
+                snapshot.forEach(docSnap => fetched.push(docSnap.data()));
+                window.dispatchEvent(new CustomEvent('rooms-updated', { detail: fetched }));
+            }, (err) => console.error("Firestore rooms listener error:", err));
+        }
+
+        window.saveRoomToFirestore = async (room) => {
+            if (!db || !auth.currentUser) return;
+            try {
+                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', String(room.id));
+                await setDoc(roomRef, JSON.parse(JSON.stringify(room)), { merge: true });
+            } catch (e) { console.error("Error saving room:", e); }
+        };
+
+        window.deleteRoomFromFirestore = async (roomId) => {
+            if (!db || !auth.currentUser) return;
+            try {
+                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', String(roomId));
+                await deleteDoc(roomRef);
+            } catch (e) { console.error("Error deleting room:", e); }
+        };
+
+        function setupFamiliesSnapshot() {
+            if (!db || !currentUser) return;
+            const familiesRef = collection(db, 'artifacts', appId, 'public', 'data', 'families');
+            onSnapshot(familiesRef, (snapshot) => {
+                const fetched = [];
+                snapshot.forEach(docSnap => fetched.push(docSnap.data()));
+                window.dispatchEvent(new CustomEvent('families-updated', { detail: fetched }));
+            }, (err) => console.error("Firestore families listener error:", err));
+        }
+
+        window.saveFamilyToFirestore = async (family) => {
+            if (!db || !auth.currentUser) return;
+            try {
+                const familyRef = doc(db, 'artifacts', appId, 'public', 'data', 'families', String(family.id));
+                await setDoc(familyRef, JSON.parse(JSON.stringify(family)), { merge: true });
+            } catch (e) { console.error("Error saving family:", e); }
+        };
+
+        function setupChildrenSnapshot() {
+            if (!db || !currentUser) return;
+            const childrenRef = collection(db, 'artifacts', appId, 'public', 'data', 'children');
+            onSnapshot(childrenRef, (snapshot) => {
+                const fetched = [];
+                snapshot.forEach(docSnap => fetched.push(docSnap.data()));
+                window.dispatchEvent(new CustomEvent('children-updated', { detail: fetched }));
+            }, (err) => console.error("Firestore children listener error:", err));
+        }
+
+        window.saveChildToFirestore = async (child) => {
+            if (!db || !auth.currentUser) return;
+            try {
+                const childRef = doc(db, 'artifacts', appId, 'public', 'data', 'children', String(child.id));
+                await setDoc(childRef, JSON.parse(JSON.stringify(child)), { merge: true });
+            } catch (e) { console.error("Error saving child:", e); }
+        };
+
+        function setupLeadsSnapshot() {
+            if (!db || !currentUser) return;
+            const leadsRef = collection(db, 'artifacts', appId, 'public', 'data', 'leads');
+            onSnapshot(leadsRef, (snapshot) => {
+                const fetched = [];
+                snapshot.forEach(docSnap => fetched.push(docSnap.data()));
+                window.dispatchEvent(new CustomEvent('leads-updated', { detail: fetched }));
+            }, (err) => console.error("Firestore leads listener error:", err));
+        }
+
+        window.saveLeadToFirestore = async (lead) => {
+            if (!db || !auth.currentUser) return;
+            try {
+                const leadRef = doc(db, 'artifacts', appId, 'public', 'data', 'leads', String(lead.id));
+                await setDoc(leadRef, JSON.parse(JSON.stringify(lead)), { merge: true });
+            } catch (e) { console.error("Error saving lead:", e); }
+        };
+
+        window.deleteLeadFromFirestore = async (leadId) => {
+            if (!db || !auth.currentUser) return;
+            try {
+                const leadRef = doc(db, 'artifacts', appId, 'public', 'data', 'leads', String(leadId));
+                await deleteDoc(leadRef);
+            } catch (e) { console.error("Error deleting lead:", e); }
+        };
+
+        function setupStaffSnapshot() {
+            if (!db || !currentUser) return;
+            const staffRef = collection(db, 'artifacts', appId, 'public', 'data', 'staff');
+            onSnapshot(staffRef, (snapshot) => {
+                const fetched = [];
+                snapshot.forEach(docSnap => fetched.push(docSnap.data()));
+                window.dispatchEvent(new CustomEvent('staff-updated', { detail: fetched }));
+            }, (err) => console.error("Firestore staff listener error:", err));
+        }
+
+        window.saveStaffToFirestore = async (st) => {
+            if (!db || !auth.currentUser) return;
+            try {
+                const staffRef = doc(db, 'artifacts', appId, 'public', 'data', 'staff', String(st.id));
+                await setDoc(staffRef, JSON.parse(JSON.stringify(st)), { merge: true });
+            } catch (e) { console.error("Error saving staff:", e); }
+        };
+
+        function setupCentersSnapshot() {
+            if (!db || !currentUser) return;
+            const centersRef = collection(db, 'artifacts', appId, 'public', 'data', 'centers');
+            onSnapshot(centersRef, (snapshot) => {
+                const fetched = [];
+                snapshot.forEach(docSnap => fetched.push(docSnap.data()));
+                window.dispatchEvent(new CustomEvent('centers-updated', { detail: fetched }));
+            }, (err) => console.error("Firestore centers listener error:", err));
+        }
+
+        window.saveCenterToFirestore = async (center) => {
+            if (!db || !auth.currentUser) return;
+            try {
+                const centerRef = doc(db, 'artifacts', appId, 'public', 'data', 'centers', String(center.id));
+                await setDoc(centerRef, JSON.parse(JSON.stringify(center)), { merge: true });
+            } catch (e) { console.error("Error saving center:", e); }
+        };
+    </script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        nami: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            sidebar: '#165a6e',
+                            sidebarHover: '#1c6d85',
+                            sidebarActive: '#227f9b',
+                            bg: '#e8f4f4'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        .dot-pattern {
+            background-color: #eaf3f3;
+            background-image: radial-gradient(#b2d8d8 0.85px, transparent 0.85px);
+            background-size: 16px 16px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(150, 180, 185, 0.4);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 150, 160, 0.6);
+        }
+
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+
+<body class="h-full font-sans antialiased text-slate-800 bg-slate-100 overflow-hidden" 
+      x-data="namiApp()" 
+      x-init="initApp()" 
+      @keydown.window.cmd.k.prevent="isSearchOpen = true" 
+      @keydown.window.ctrl.k.prevent="isSearchOpen = true">
+
+    <div class="flex h-screen w-full overflow-hidden">
+
+        <!-- ================= SIDEBAR ================= -->
+        <aside class="w-64 bg-nami-sidebar text-teal-50 flex flex-col justify-between shrink-0 select-none shadow-xl transition-all duration-300 z-30">
+            <div class="flex flex-col h-full overflow-y-auto">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-teal-800/40">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-teal-400/20 flex items-center justify-center text-teal-200 border border-teal-300/30 shadow-inner">
+                            <i data-lucide="baby" class="w-5 h-5 text-teal-300"></i>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-xl font-bold tracking-tight text-white leading-none">Namii</span>
+                            <span class="text-[10px] font-semibold text-teal-300 tracking-wider mt-0.5">ADMIN V_1.1</span>
+                        </div>
+                    </div>
+                    <button @click="showToast('Sin nuevas notificaciones')" class="p-1.5 hover:bg-teal-800/50 rounded-lg text-teal-200 transition" title="Notificaciones">
+                        <i data-lucide="bell" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="px-3.5 pt-4 pb-2 space-y-2">
+                    <button @click="isSearchOpen = true" class="w-full bg-teal-800/40 hover:bg-teal-800/60 text-teal-200/90 text-xs py-2 px-3 rounded-lg flex items-center justify-between border border-teal-700/50 transition">
+                        <span class="flex items-center"><i data-lucide="search" class="w-3.5 h-3.5 mr-2"></i> Buscar</span>
+                        <kbd class="bg-teal-900/60 text-[10px] text-teal-300 px-1.5 py-0.5 rounded border border-teal-700/40 font-mono">Ctrl+K</kbd>
+                    </button>
+                </div>
+
+                <nav class="px-2 py-2 space-y-0.5 text-xs font-medium text-teal-100/90 flex-1">
+                    <a href="#" @click.prevent="currentView = 'dashboard'" 
+                       :class="currentView === 'dashboard' ? 'bg-nami-sidebarActive text-white font-semibold shadow-sm' : 'hover:bg-teal-800/40 text-teal-100/80'" 
+                       class="flex items-center px-3 py-2 rounded-lg transition group">
+                        <i data-lucide="layout-grid" class="w-4 h-4 mr-2.5 text-teal-300"></i>
+                        <span>Panel</span>
+                    </a>
+
+                    <div class="pt-1 space-y-0.5">
+                        <button @click="isOrgOpen = !isOrgOpen" 
+                                class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-teal-100/90 hover:bg-teal-800/40 transition group">
+                            <span class="flex items-center font-medium">
+                                <i data-lucide="building-2" class="w-4 h-4 mr-2.5 text-teal-300"></i>
+                                <span>Organización</span>
+                            </span>
+                            <i data-lucide="chevron-down" 
+                               class="w-3.5 h-3.5 text-teal-300/80 transition-transform duration-200"
+                               :class="isOrgOpen ? 'rotate-180' : ''"></i>
+                        </button>
+
+                        <div x-show="isOrgOpen" x-transition class="pl-3 space-y-0.5 pt-0.5 border-l-2 border-teal-700/50 ml-4">
+                            <a href="#" @click.prevent="currentView = 'centers'" 
+                               :class="currentView === 'centers' ? 'bg-nami-sidebarActive text-white font-semibold shadow-sm' : 'hover:bg-teal-800/40 text-teal-100/80'" 
+                               class="flex items-center px-3 py-1.5 rounded-lg transition text-xs">
+                                <i data-lucide="building" class="w-3.5 h-3.5 mr-2 text-teal-300"></i>
+                                <span>Centros</span>
+                            </a>
+
+                            <a href="#" @click.prevent="currentView = 'rooms'" 
+                               :class="currentView === 'rooms' ? 'bg-nami-sidebarActive text-white font-semibold shadow-sm' : 'hover:bg-teal-800/40 text-teal-100/80'" 
+                               class="flex items-center px-3 py-1.5 rounded-lg transition text-xs">
+                                <i data-lucide="shapes" class="w-3.5 h-3.5 mr-2 text-teal-300"></i>
+                                <span>Grupos</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <a href="#" @click.prevent="currentView = 'children'" 
+                       :class="currentView === 'children' ? 'bg-nami-sidebarActive text-white font-semibold shadow-sm' : 'hover:bg-teal-800/40 text-teal-100/80'" 
+                       class="flex items-center px-3 py-2 rounded-lg transition">
+                        <i data-lucide="users" class="w-4 h-4 mr-2.5 text-teal-300"></i>
+                        <span>Familias y Niños</span>
+                    </a>
+
+                    <a href="#" @click.prevent="currentView = 'crm'" 
+                       :class="currentView === 'crm' ? 'bg-nami-sidebarActive text-white font-semibold shadow-sm' : 'hover:bg-teal-800/40 text-teal-100/80'" 
+                       class="flex items-center px-3 py-2 rounded-lg transition">
+                        <i data-lucide="user-plus" class="w-4 h-4 mr-2.5 text-teal-300"></i>
+                        <span>Admisiones y CRM</span>
+                    </a>
+                </nav>
+            </div>
+
+            <div class="p-3 border-t border-teal-800/40 bg-teal-950/20">
+                <div class="bg-teal-800/30 hover:bg-teal-800/50 p-2.5 rounded-xl flex items-center justify-between border border-teal-700/30 transition">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-8 h-8 rounded-full bg-slate-300 text-slate-700 font-bold flex items-center justify-center text-xs shadow-inner">
+                            AD
+                        </div>
+                        <div class="overflow-hidden">
+                            <h4 class="text-xs font-semibold text-white truncate leading-tight">Administrador</h4>
+                            <div class="flex items-center space-x-1 mt-0.5">
+                                <span class="bg-amber-500/80 text-amber-950 font-semibold text-[9px] px-1.5 py-0.2 rounded">Superadmin</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTAINER -->
+        <main class="flex-1 flex flex-col min-w-0 h-full overflow-hidden dot-pattern relative">
+
+            <!-- ================= VIEW: DASHBOARD ================= -->
+            <template x-if="currentView === 'dashboard'">
+                <div class="flex-1 flex flex-col h-full overflow-y-auto p-6 md:p-8 space-y-6">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-teal-100/80 shadow-sm">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Panel de Control</h1>
+                            <p class="text-xs text-slate-500 mt-0.5">Resumen general de tu centro educativo (Namii Admin V_1.1)</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button @click="currentView = 'children'" class="bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition">
+                                Ver Alumnos
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                            <div>
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Total Niños</span>
+                                <span class="text-2xl font-bold text-slate-800 mt-1 block" x-text="children.length"></span>
+                            </div>
+                            <div class="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center">
+                                <i data-lucide="baby" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                            <div>
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Grupos Activos</span>
+                                <span class="text-2xl font-bold text-slate-800 mt-1 block" x-text="rooms.length"></span>
+                            </div>
+                            <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center">
+                                <i data-lucide="shapes" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                            <div>
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Familias</span>
+                                <span class="text-2xl font-bold text-slate-800 mt-1 block" x-text="families.length"></span>
+                            </div>
+                            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                                <i data-lucide="users" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                            <div>
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Prospectos CRM</span>
+                                <span class="text-2xl font-bold text-slate-800 mt-1 block" x-text="leads.length"></span>
+                            </div>
+                            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                                <i data-lucide="user-plus" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- ================= VIEW: GRUPOS ================= -->
+            <template x-if="currentView === 'rooms'">
+                <div class="flex-1 flex flex-col h-full overflow-y-auto p-6 md:p-8 space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 backdrop-blur-md p-6 rounded-2xl border border-teal-100/80 shadow-sm">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Grupos</h1>
+                            <p class="text-xs text-slate-500 mt-0.5">Gestión de salas de estimulación, cupos, personal asignado y alumnos inscritos</p>
+                        </div>
+                        <button @click="openAddRoomModal()" class="inline-flex items-center justify-center bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-md shadow-teal-700/20 transition duration-150 transform active:scale-95">
+                            <i data-lucide="plus" class="w-4 h-4 mr-1.5"></i> + Agregar Grupo
+                        </button>
+                    </div>
+
+                    <div class="bg-white/80 p-3 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 mr-2"></i>
+                        <input type="text" x-model="roomSearchQuery" placeholder="Buscar grupo por nombre o rango de edad..." class="w-full bg-transparent text-xs focus:outline-none">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <template x-for="room in filteredRoomsList" :key="room.id">
+                            <div class="bg-white/90 rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between hover:shadow-md transition space-y-4">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 rounded-2xl bg-teal-50 text-teal-700 border border-teal-100 flex items-center justify-center font-bold">
+                                            <i data-lucide="shapes" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold text-slate-800 text-base" x-text="room.name"></h3>
+                                            <div class="flex items-center space-x-2 text-xs text-slate-500 font-medium mt-0.5">
+                                                <span class="flex items-center space-x-1">
+                                                    <i data-lucide="users" class="w-3.5 h-3.5 text-teal-600"></i>
+                                                    <span class="font-bold text-slate-700" x-text="getRoomEnrolledChildren(room).length + ' / ' + room.capacity + ' inscritos'"></span>
+                                                </span>
+                                                <span class="bg-teal-50 text-teal-800 text-[10px] font-semibold px-2 py-0.5 rounded border border-teal-200" x-text="room.ageGroup || 'Cualquier edad'"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center space-x-1">
+                                        <button @click="openEditRoomModal(room)" class="p-1.5 text-slate-400 hover:text-teal-700 hover:bg-slate-100 rounded-lg transition" title="Editar Grupo">
+                                            <i data-lucide="pencil" class="w-4 h-4"></i>
+                                        </button>
+                                        <button @click="confirmDeleteRoom(room)" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Eliminar Grupo">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2 pt-3 border-t border-slate-100 text-xs">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">PERSONAL ASIGNADO (STAFF)</span>
+                                    
+                                    <div class="space-y-1.5">
+                                        <template x-for="st in getRoomStaff(room)" :key="st.id">
+                                            <div class="p-2 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center justify-between">
+                                                <div class="flex items-center space-x-2">
+                                                    <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center text-[10px]" x-text="st.name ? st.name.charAt(0) : 'S'"></div>
+                                                    <div>
+                                                        <span class="font-semibold text-slate-800 text-xs block leading-tight" x-text="st.name + ' ' + (st.firstLastName || '')"></span>
+                                                        <span class="text-[9px] text-slate-400 block" x-text="st.role"></span>
+                                                    </div>
+                                                </div>
+                                                <button @click="unassignStaffFromRoom(room, st.id)" class="p-1 text-slate-400 hover:text-rose-600" title="Quitar">
+                                                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                                                </button>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="!room.staffIds || room.staffIds.length === 0">
+                                            <div class="p-2.5 bg-slate-50/70 rounded-xl border border-dashed border-slate-200 text-center text-[11px] text-slate-400 font-medium">
+                                                No hay personal asignado
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <button @click="openAssignStaffModal(room)" class="w-full mt-1 py-1.5 px-3 bg-teal-50 hover:bg-teal-100/70 text-teal-800 font-semibold rounded-xl text-xs transition flex items-center justify-center space-x-1 border border-teal-200/80">
+                                        <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                                        <span>+ Asignar personal</span>
+                                    </button>
+                                </div>
+
+                                <div class="space-y-2 pt-3 border-t border-slate-100 text-xs">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">NIÑOS INSCRITOS</span>
+
+                                    <div class="space-y-1.5 max-h-48 overflow-y-auto">
+                                        <template x-for="child in getRoomEnrolledChildren(room)" :key="child.id">
+                                            <div class="p-2.5 bg-slate-50 hover:bg-teal-50/30 rounded-xl border border-slate-200/60 flex items-center justify-between transition">
+                                                <div @click="openChildDrawer(child)" class="flex items-center space-x-2.5 cursor-pointer flex-1">
+                                                    <div class="w-7 h-7 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center text-[10px]" x-text="child.name ? child.name.charAt(0) : 'N'"></div>
+                                                    <div>
+                                                        <h4 class="font-bold text-slate-800 text-xs" x-text="child.name + ' ' + (child.firstLastName || '')"></h4>
+                                                        <span class="text-[10px] text-slate-400" x-text="child.parentName || 'Tutor registrado'"></span>
+                                                    </div>
+                                                </div>
+                                                <button @click="unenrollChildFromRoom(room, child.id)" class="p-1 text-slate-400 hover:text-rose-600 rounded" title="Dar de baja del grupo">
+                                                    <i data-lucide="user-x" class="w-3.5 h-3.5"></i>
+                                                </button>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="getRoomEnrolledChildren(room).length === 0">
+                                            <div class="p-2.5 bg-slate-50/70 rounded-xl border border-dashed border-slate-200 text-center text-[11px] text-slate-400 font-medium">
+                                                Sin niños inscritos
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <button @click="openEnrollChildModal(room)" class="w-full mt-1 py-1.5 px-3 bg-teal-700 hover:bg-teal-800 text-white font-semibold rounded-xl text-xs transition flex items-center justify-center space-x-1 shadow-xs">
+                                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                        <span>+ Inscribir niño</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template x-if="rooms.length === 0">
+                            <div class="col-span-full py-16 bg-white/50 rounded-2xl border border-dashed border-slate-300 text-center space-y-2">
+                                <i data-lucide="shapes" class="w-8 h-8 text-slate-400 mx-auto"></i>
+                                <h4 class="font-bold text-slate-700 text-sm">No hay grupos creados</h4>
+                                <p class="text-xs text-slate-400">Haz clic en "+ Agregar Grupo" para crear el primero.</p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            <!-- ================= VIEW: FAMILIAS Y NIÑOS ================= -->
+            <template x-if="currentView === 'children'">
+                <div class="flex-1 flex flex-col h-full overflow-y-auto p-6 md:p-8 space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-teal-100/80 shadow-2xs">
+                        <div class="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl">
+                            <button @click="childrenTab = 'familia'" 
+                                    :class="childrenTab === 'familia' ? 'bg-white font-bold text-teal-800 shadow-2xs' : 'text-slate-600 font-medium hover:text-slate-900'"
+                                    class="px-4 py-2 rounded-lg text-xs transition">
+                                Familias
+                            </button>
+                            <button @click="childrenTab = 'nino'" 
+                                    :class="childrenTab === 'nino' ? 'bg-white font-bold text-teal-800 shadow-2xs' : 'text-slate-600 font-medium hover:text-slate-900'"
+                                    class="px-4 py-2 rounded-lg text-xs transition">
+                                Niños
+                            </button>
+                        </div>
+
+                        <div class="flex items-center space-x-2">
+                            <button @click="openAddFamilyModal()" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center space-x-1.5 shadow-2xs">
+                                <i data-lucide="user-plus" class="w-4 h-4 text-teal-600"></i>
+                                <span>+ Registrar Familia</span>
+                            </button>
+                            <button @click="openAddChildModal()" class="bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center space-x-1.5 shadow-md shadow-teal-700/20">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                <span>+ Registrar Niño</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- TAB: FAMILIAS -->
+                    <template x-if="childrenTab === 'familia'">
+                        <div class="space-y-4">
+                            <div class="bg-white/80 p-3 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center">
+                                <i data-lucide="search" class="w-4 h-4 text-slate-400 mr-2"></i>
+                                <input type="text" x-model="familySearchQuery" placeholder="Buscar por nombre de familia o tutor..." class="w-full bg-transparent text-xs focus:outline-none">
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <template x-for="fam in filteredFamiliesList" :key="fam.id">
+                                    <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between hover:shadow-md transition space-y-4">
+                                        <div class="flex items-start justify-between">
+                                            <div class="flex items-center space-x-3">
+                                                <div class="w-10 h-10 rounded-2xl bg-teal-50 text-teal-700 font-bold flex items-center justify-center text-sm border border-teal-100">
+                                                    <i data-lucide="users" class="w-5 h-5"></i>
+                                                </div>
+                                                <div>
+                                                    <h3 class="font-bold text-slate-800 text-sm" x-text="fam.name"></h3>
+                                                    <span class="text-[11px] text-slate-500 font-medium block" x-text="'Tutor: ' + fam.nameInput + ' ' + (fam.firstLastNameInput || '')"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-2 pt-2 border-t border-slate-100 text-xs">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">HIJOS REGISTRADOS</span>
+                                            <template x-for="child in getChildrenForFamily(fam.id)" :key="child.id">
+                                                <div @click="openChildDrawer(child)" class="p-2.5 bg-slate-50 hover:bg-teal-50/40 rounded-xl border border-slate-200/60 flex items-center justify-between cursor-pointer transition">
+                                                    <div class="flex items-center space-x-2.5">
+                                                        <div class="w-7 h-7 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center text-[10px]" x-text="child.name ? child.name.charAt(0) : 'N'"></div>
+                                                        <div>
+                                                            <h4 class="font-bold text-slate-800 text-xs" x-text="child.name + ' ' + (child.firstLastName || '')"></h4>
+                                                            <div class="flex items-center space-x-2 mt-0.5 text-[10px] text-slate-500 font-medium">
+                                                                <span class="flex items-center gap-1"><i data-lucide="cake" class="w-3 h-3 text-slate-400"></i> <span x-text="child.age || '0m'"></span></span>
+                                                                <span class="flex items-center gap-1"><i data-lucide="home" class="w-3 h-3 text-slate-400"></i> <span x-text="child.roomName || 'Sin grupo'"></span></span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+                                                </div>
+                                            </template>
+
+                                            <template x-if="getChildrenForFamily(fam.id).length === 0">
+                                                <div class="p-2.5 bg-slate-50/70 rounded-xl border border-dashed border-slate-200 text-center text-[11px] text-slate-400 font-medium">
+                                                    Sin hijos asociados
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <template x-if="families.length === 0">
+                                    <div class="col-span-full py-16 bg-white/50 rounded-2xl border border-dashed border-slate-300 text-center space-y-2">
+                                        <i data-lucide="users" class="w-8 h-8 text-slate-400 mx-auto"></i>
+                                        <h4 class="font-bold text-slate-700 text-sm">No hay familias registradas</h4>
+                                        <p class="text-xs text-slate-400">Haz clic en "+ Registrar Familia" para comenzar.</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- TAB: NIÑOS -->
+                    <template x-if="childrenTab === 'nino'">
+                        <div class="space-y-4">
+                            <div class="bg-white/90 p-2.5 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
+                                <div class="flex-1 min-w-[240px] flex items-center bg-slate-50/90 px-3 py-2 rounded-xl border border-slate-200/80">
+                                    <i data-lucide="search" class="w-4 h-4 text-slate-400 mr-2"></i>
+                                    <input type="text" x-model="childSearchQuery" placeholder="Buscar niños o tutores..." class="w-full bg-transparent text-xs focus:outline-none">
+                                </div>
+
+                                <div class="flex items-center bg-slate-100/80 p-1 rounded-xl border border-slate-200">
+                                    <button @click="childStatusFilter = 'active'" 
+                                            :class="childStatusFilter === 'active' ? 'bg-white font-bold text-teal-800 shadow-2xs' : 'text-slate-600 font-medium hover:text-slate-900'"
+                                            class="px-3 py-1.5 rounded-lg text-xs transition">
+                                        Activos
+                                    </button>
+                                    <button @click="childStatusFilter = 'archived'" 
+                                            :class="childStatusFilter === 'archived' ? 'bg-white font-bold text-teal-800 shadow-2xs' : 'text-slate-600 font-medium hover:text-slate-900'"
+                                            class="px-3 py-1.5 rounded-lg text-xs transition">
+                                        Archivados
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                                <template x-for="child in filteredChildrenList" :key="child.id">
+                                    <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between hover:shadow-md transition space-y-4">
+                                        <div class="flex items-start space-x-3.5">
+                                            <div class="w-12 h-12 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center font-bold text-slate-500 text-xs shrink-0 uppercase tracking-tight overflow-hidden"
+                                                 x-text="child.name ? child.name.substring(0, 3) : 'UND'">
+                                            </div>
+
+                                            <div class="flex-1 min-w-0">
+                                                <h3 class="font-bold text-slate-900 text-base leading-tight" x-text="child.name + ' ' + (child.firstLastName || '')"></h3>
+                                                
+                                                <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                                    <span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-slate-200/70 flex items-center gap-1">
+                                                        <i data-lucide="cake" class="w-3 h-3 text-slate-400"></i>
+                                                        <span x-text="child.age || '0m'"></span>
+                                                    </span>
+
+                                                    <template x-if="child.gender">
+                                                        <span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-slate-200/70" x-text="child.gender"></span>
+                                                    </template>
+
+                                                    <span class="bg-amber-50/80 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-md border border-amber-200/70 flex items-center gap-1">
+                                                        <i data-lucide="door-closed" class="w-3 h-3 text-amber-600"></i>
+                                                        <span x-text="child.roomName || 'Sin grupo'"></span>
+                                                    </span>
+                                                </div>
+
+                                                <span class="text-[10px] text-slate-400 block mt-2 font-medium" x-text="'Nacido: ' + (child.dob || 'Sin fecha')"></span>
+                                            </div>
+                                        </div>
+
+                                        <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                                            <div class="flex items-center space-x-1.5 text-slate-600">
+                                                <i data-lucide="user" class="w-4 h-4 text-slate-400"></i>
+                                                <span class="font-medium text-slate-700" x-text="child.parentName || 'Tutor registrado'"></span>
+                                            </div>
+
+                                            <div class="flex items-center space-x-2">
+                                                <button @click="openChildDrawer(child)" class="px-3 py-1 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200/80 font-semibold rounded-lg text-xs transition flex items-center space-x-1">
+                                                    <i data-lucide="id-card" class="w-3.5 h-3.5 text-sky-600"></i>
+                                                    <span>Perfil</span>
+                                                </button>
+                                                <button @click="archiveChild(child)" class="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 font-semibold rounded-lg text-xs transition flex items-center space-x-1">
+                                                    <i data-lucide="archive" class="w-3.5 h-3.5 text-rose-600"></i>
+                                                    <span>Archivar</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <template x-if="children.length === 0">
+                                    <div class="col-span-full py-16 bg-white/50 rounded-2xl border border-dashed border-slate-300 text-center space-y-2">
+                                        <i data-lucide="baby" class="w-8 h-8 text-slate-400 mx-auto"></i>
+                                        <h4 class="font-bold text-slate-700 text-sm">No hay niños registrados</h4>
+                                        <p class="text-xs text-slate-400">Haz clic en "+ Registrar Niño" para comenzar.</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- ================= VIEW: ADMISIONES Y CRM ================= -->
+            <template x-if="currentView === 'crm'">
+                <div class="flex-1 flex flex-col h-full overflow-y-auto p-6 md:p-8 space-y-5">
+                    
+                    <!-- NAV BAR DE ADMISIONES CON PESTAÑA FLUJO -->
+                    <div class="border-b border-slate-200/90 pb-2 flex items-center space-x-6 text-xs font-semibold">
+                        <button class="py-1.5 text-teal-800 border-b-2 border-teal-600 font-bold flex items-center space-x-2">
+                            <i data-lucide="git-branch" class="w-4 h-4 text-teal-600"></i>
+                            <span>Flujo</span>
+                        </button>
+                    </div>
+
+                    <!-- BOTÓN AGREGAR LEAD Y CONTROLES DE VISTA -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center space-x-3">
+                            <button @click="openAddLeadModal()" class="inline-flex items-center justify-center bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-md shadow-teal-700/20 transition duration-150 active:scale-95">
+                                <i data-lucide="plus" class="w-4 h-4 mr-1.5"></i> + Agregar lead
+                            </button>
+                            <span class="text-xs font-semibold text-slate-500" x-text="filteredLeadsList.length + ' prospectos activos'"></span>
+                        </div>
+
+                        <div class="flex items-center space-x-2">
+                            <div class="flex items-center bg-slate-200/80 p-0.5 rounded-xl border border-slate-300/60">
+                                <button @click="crmViewMode = 'list'" :class="crmViewMode === 'list' ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'" class="p-1.5 rounded-lg transition" title="Vista Lista">
+                                    <i data-lucide="list" class="w-4 h-4"></i>
+                                </button>
+                                <button @click="crmViewMode = 'board'" :class="crmViewMode === 'board' ? 'bg-white text-teal-800 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'" class="p-1.5 rounded-lg transition" title="Vista Tablero Kanban">
+                                    <i data-lucide="kanban" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TOP SECTION: EMBUDO DE ADMISIONES -->
+                    <div class="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <div class="flex items-center space-x-2">
+                                <i data-lucide="chevron-up" class="w-4 h-4 text-slate-500"></i>
+                                <h2 class="font-bold text-slate-800 text-sm tracking-tight">Embudo de admisiones</h2>
+                            </div>
+                            <select x-model="crmTimeFilter" class="text-xs font-medium bg-slate-100 border border-slate-200/80 rounded-xl px-3 py-1.5 focus:outline-none focus:border-teal-600">
+                                <option value="week">Esta semana</option>
+                                <option value="month">Este mes</option>
+                                <option value="all">Todo el tiempo</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                            <div class="lg:col-span-8 space-y-3">
+                                <template x-for="stage in crmStages" :key="stage.id">
+                                    <div class="space-y-1" x-show="stage.id !== 'lost'">
+                                        <div class="flex items-center justify-between text-xs font-medium">
+                                            <span class="text-slate-600 w-48 truncate" x-text="stage.name"></span>
+                                            <div class="flex-1 mx-3 bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                                                <div class="h-full rounded-full transition-all duration-500" :class="stage.barColor" :style="'width: ' + getFunnelWidth(stage.id) + '%'"></div>
+                                            </div>
+                                            <span class="font-bold text-slate-800 w-20 text-right" x-text="getFunnelCount(stage.id) + ' (' + getFunnelPct(stage.id) + '%)'"></span>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <p class="text-[11px] text-slate-400 font-medium pt-1">
+                                    Perdidos: <span x-text="getFunnelCount('lost')">0</span> · Inscritos: <span x-text="getFunnelCount('enrolled')">0</span>
+                                </p>
+                            </div>
+
+                            <div class="lg:col-span-4 border-t lg:border-t-0 lg:border-l border-slate-100 pt-4 lg:pt-0 lg:pl-6 space-y-2">
+                                <div class="flex items-center space-x-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    <i data-lucide="hourglass" class="w-3.5 h-3.5 text-amber-500"></i>
+                                    <span>ESPERAN TU RESPUESTA</span>
+                                </div>
+                                <p class="text-xs text-slate-400 font-medium pt-1">
+                                    Nadie está esperando una respuesta ahora.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SEARCH BAR -->
+                    <div class="bg-white/90 p-2.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 mr-2.5"></i>
+                        <input type="text" x-model="leadSearchQuery" placeholder="Buscar por nombre, correo, teléfono o nombre del niño..." class="w-full bg-transparent text-xs focus:outline-none text-slate-700 placeholder-slate-400">
+                    </div>
+
+                    <!-- KANBAN BOARD VIEW -->
+                    <template x-if="crmViewMode === 'board'">
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3.5 items-start overflow-x-auto pb-6">
+                            <template x-for="stage in crmStages" :key="stage.id">
+                                <div @dragover.prevent 
+                                     @dragenter.prevent 
+                                     @drop="dropLeadToStage(stage.id)"
+                                     class="bg-slate-200/40 rounded-2xl p-3 flex flex-col min-h-[460px] border border-slate-200/60 transition-colors duration-150">
+                                    
+                                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200/80">
+                                        <div class="flex items-center space-x-2 min-w-0">
+                                            <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="stage.dotColor"></span>
+                                            <h3 class="font-bold text-slate-700 text-[11px] tracking-wider uppercase truncate" x-text="stage.name"></h3>
+                                        </div>
+                                        <span class="bg-white text-slate-700 font-bold text-[10px] px-2 py-0.5 rounded-full shadow-2xs shrink-0" x-text="getLeadsByStage(stage.id).length"></span>
+                                    </div>
+
+                                    <div class="space-y-3 flex-1 overflow-y-auto">
+                                        <template x-for="lead in getLeadsByStage(stage.id)" :key="lead.id">
+                                            <div draggable="true"
+                                                 @dragstart="draggedLeadId = lead.id"
+                                                 @click="openLeadDrawer(lead)"
+                                                 class="bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2.5 hover:shadow-md transition cursor-pointer hover:border-teal-300">
+                                                
+                                                <div class="flex items-start justify-between">
+                                                    <div class="min-w-0 pr-2">
+                                                        <h4 class="font-bold text-slate-900 text-xs truncate" x-text="lead.childName ? (lead.childName + ' ' + (lead.childFirstLastName || '')) : (lead.parentName || 'Sin nombre')"></h4>
+                                                        <span class="text-[10px] text-slate-400 font-medium block truncate" x-text="'Tutor: ' + (lead.parentName || 'Sin tutor')"></span>
+                                                    </div>
+                                                    <div class="w-6 h-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
+                                                        <i data-lucide="user" class="w-3.5 h-3.5"></i>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-slate-500">
+                                                    <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200/70" x-text="lead.phone || 'Sin teléfono'"></span>
+                                                    <a :href="'https://wa.me/' + (lead.phone || '')" target="_blank" @click.stop class="p-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-md transition" title="Contactar por WhatsApp">
+                                                        <i data-lucide="message-circle" class="w-3 h-3"></i>
+                                                    </a>
+                                                    <span class="text-[9px] text-slate-400 font-normal ml-auto" x-text="lead.createdAt || 'hace un momento'"></span>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="getLeadsByStage(stage.id).length === 0">
+                                            <div class="flex items-center justify-center h-32 text-center">
+                                                <span class="text-xs italic text-slate-400 font-medium">No hay prospectos</span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- LIST VIEW -->
+                    <template x-if="crmViewMode === 'list'">
+                        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                                    <tr>
+                                        <th class="p-3.5">Nombre Alumno / Prospecto</th>
+                                        <th class="p-3.5">Tutor / Teléfono</th>
+                                        <th class="p-3.5">Etapa Actual</th>
+                                        <th class="p-3.5">Creado</th>
+                                        <th class="p-3.5 text-right">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                                    <template x-for="lead in filteredLeadsList" :key="lead.id">
+                                        <tr @click="openLeadDrawer(lead)" class="hover:bg-slate-50/60 transition cursor-pointer">
+                                            <td class="p-3.5 font-bold text-slate-900" x-text="lead.childName ? (lead.childName + ' ' + (lead.childFirstLastName || '')) : 'Sin nombre'"></td>
+                                            <td class="p-3.5">
+                                                <div x-text="lead.parentName"></div>
+                                                <div class="text-[10px] text-slate-400" x-text="lead.phone || 'Sin teléfono'"></div>
+                                            </td>
+                                            <td class="p-3.5" @click.stop>
+                                                <select @change="moveLeadStage(lead, $event.target.value)" class="text-[10px] font-semibold bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none">
+                                                    <template x-for="s in crmStages" :key="s.id">
+                                                        <option :value="s.id" :selected="s.id === lead.stageId" x-text="s.name"></option>
+                                                    </template>
+                                                </select>
+                                            </td>
+                                            <td class="p-3.5 text-slate-400 text-[11px]" x-text="lead.createdAt || 'Reciente'"></td>
+                                            <td class="p-3.5 text-right space-x-1" @click.stop>
+                                                <a :href="'https://wa.me/' + (lead.phone || '')" target="_blank" class="inline-flex p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg" title="WhatsApp">
+                                                    <i data-lucide="message-circle" class="w-4 h-4"></i>
+                                                </a>
+                                                <button @click="deleteLead(lead)" class="inline-flex p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg" title="Eliminar">
+                                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- ================= VIEW: CENTROS ================= -->
+            <template x-if="currentView === 'centers'">
+                <div class="flex-1 flex flex-col h-full overflow-y-auto p-6 md:p-8 space-y-6">
+                    <div class="bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-teal-100/80 shadow-sm flex items-center justify-between">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Centros Educativos</h1>
+                            <p class="text-xs text-slate-500 mt-0.5">Sedes activas y configuración de ubicación</p>
+                        </div>
+                        <button @click="openAddCenterModal()" class="bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-md transition">
+                            + Agregar Centro
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <template x-for="center in centers" :key="center.id">
+                            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center font-bold">
+                                        <i data-lucide="building" class="w-6 h-6"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-slate-800 text-base" x-text="center.name"></h3>
+                                        <span class="text-xs text-slate-500" x-text="center.location"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template x-if="centers.length === 0">
+                            <div class="col-span-full py-16 bg-white/50 rounded-2xl border border-dashed border-slate-300 text-center space-y-2">
+                                <i data-lucide="building" class="w-8 h-8 text-slate-400 mx-auto"></i>
+                                <h4 class="font-bold text-slate-700 text-sm">No hay centros educativos registrados</h4>
+                                <p class="text-xs text-slate-400">Haz clic en "+ Agregar Centro" para registrar una sede.</p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+        </main>
+    </div>
+
+    <!-- MODAL: AGREGAR / EDITAR GRUPO -->
+    <div x-show="isAddRoomModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-base" x-text="editingRoom ? 'Editar Grupo' : 'Agregar Nuevo Grupo'"></h3>
+                <button @click="isAddRoomModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Nombre del Grupo</label>
+                    <input type="text" x-model="roomForm.name" placeholder="Ej. Sala Maternal A" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Rango de Edad</label>
+                    <input type="text" x-model="roomForm.ageGroup" placeholder="Ej. 1 a 2 años" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Capacidad / Cupo</label>
+                        <input type="number" x-model.number="roomForm.capacity" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Ratio (Maestra:Niños)</label>
+                        <input type="text" x-model="roomForm.ratio" placeholder="1:6" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button @click="isAddRoomModalOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 font-semibold rounded-xl text-xs">Cancelar</button>
+                <button @click="saveRoomModal()" class="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Grupo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ASIGNAR PERSONAL A GRUPO -->
+    <div x-show="isAssignStaffModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-sm">Asignar Personal</h3>
+                <button @click="isAssignStaffModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="space-y-2 text-xs max-h-60 overflow-y-auto">
+                <template x-for="st in staff" :key="st.id">
+                    <div @click="assignStaffToRoom(targetRoomForStaff, st.id)" class="p-2.5 bg-slate-50 hover:bg-teal-50 rounded-xl border border-slate-200/80 flex items-center justify-between cursor-pointer transition">
+                        <div>
+                            <span class="font-bold text-slate-800 block" x-text="st.name + ' ' + (st.firstLastName || '')"></span>
+                            <span class="text-[10px] text-slate-400 block" x-text="st.role"></span>
+                        </div>
+                        <i data-lucide="plus-circle" class="w-4 h-4 text-teal-600"></i>
+                    </div>
+                </template>
+
+                <template x-if="staff.length === 0">
+                    <div class="text-center py-6 text-slate-400 text-xs">
+                        No hay personal registrado en el sistema.
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: INSCRIBIR NIÑO A GRUPO -->
+    <div x-show="isEnrollChildModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-sm">Inscribir Niño al Grupo</h3>
+                <button @click="isEnrollChildModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="space-y-2 text-xs max-h-60 overflow-y-auto">
+                <template x-for="child in children.filter(c => !c.archived)" :key="child.id">
+                    <div @click="enrollChildToRoom(targetRoomForChild, child.id)" class="p-2.5 bg-slate-50 hover:bg-teal-50 rounded-xl border border-slate-200/80 flex items-center justify-between cursor-pointer transition">
+                        <div>
+                            <span class="font-bold text-slate-800 block" x-text="child.name + ' ' + (child.firstLastName || '')"></span>
+                            <span class="text-[10px] text-slate-400 block" x-text="child.parentName || 'Tutor registrado'"></span>
+                        </div>
+                        <i data-lucide="plus-circle" class="w-4 h-4 text-teal-600"></i>
+                    </div>
+                </template>
+
+                <template x-if="children.filter(c => !c.archived).length === 0">
+                    <div class="text-center py-6 text-slate-400 text-xs">
+                        No hay niños activos disponibles.
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRAR FAMILIA -->
+    <div x-show="isAddFamilyModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-base">Registrar Nueva Familia</h3>
+                <button @click="isAddFamilyModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Nombre de la Familia</label>
+                    <input type="text" x-model="familyForm.name" placeholder="Ej. Familia Gómez" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Nombre(s) Tutor</label>
+                        <input type="text" x-model="familyForm.nameInput" placeholder="María" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Primer Apellido</label>
+                        <input type="text" x-model="familyForm.firstLastNameInput" placeholder="Gómez" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Segundo Apellido</label>
+                        <input type="text" x-model="familyForm.secondLastNameInput" placeholder="Pérez" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Correo Electrónico</label>
+                        <input type="email" x-model="familyForm.email" placeholder="correo@ejemplo.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Teléfono</label>
+                        <input type="text" x-model="familyForm.phone" placeholder="5512345678" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button @click="isAddFamilyModalOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 font-semibold rounded-xl text-xs">Cancelar</button>
+                <button @click="saveFamilyModal()" class="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Familia</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRAR NIÑO -->
+    <div x-show="isAddChildModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-base">Registrar Nuevo Niño</h3>
+                <button @click="isAddChildModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Nombre(s)</label>
+                        <input type="text" x-model="childForm.name" placeholder="Mateo" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Primer Apellido</label>
+                        <input type="text" x-model="childForm.firstLastName" placeholder="López" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Segundo Apellido</label>
+                        <input type="text" x-model="childForm.secondLastName" placeholder="Sánchez" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Asociar a Familia</label>
+                    <select x-model="childForm.familyId" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                        <option value="">Selecciona una familia</option>
+                        <template x-for="fam in families" :key="fam.id">
+                            <option :value="fam.id" x-text="fam.name + ' (' + fam.nameInput + ')'"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Fecha de Nacimiento</label>
+                        <input type="date" x-model="childForm.dob" @change="calculateChildAge(childForm)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Edad Calculada</label>
+                        <input type="text" x-model="childForm.age" readonly placeholder="Automática" class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 font-semibold focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Género</label>
+                    <select x-model="childForm.gender" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                        <option value="Niño">Niño</option>
+                        <option value="Niña">Niña</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button @click="isAddChildModalOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 font-semibold rounded-xl text-xs">Cancelar</button>
+                <button @click="saveChildModal()" class="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Niño</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AGREGAR PROSPECTO CRM -->
+    <div x-show="isAddLeadModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-base">Nuevo Prospecto</h3>
+                <button @click="isAddLeadModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Nombre Niño</label>
+                        <input type="text" x-model="leadForm.childName" placeholder="Mateo" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Primer Apellido</label>
+                        <input type="text" x-model="leadForm.childFirstLastName" placeholder="López" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Segundo Apellido</label>
+                        <input type="text" x-model="leadForm.childSecondLastName" placeholder="Pérez" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Nombre Tutor</label>
+                        <input type="text" x-model="leadForm.parentName" placeholder="Carlos" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Primer Apellido</label>
+                        <input type="text" x-model="leadForm.parentFirstLastName" placeholder="López" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Segundo Apellido</label>
+                        <input type="text" x-model="leadForm.parentSecondLastName" placeholder="Sánchez" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Correo Electrónico</label>
+                        <input type="email" x-model="leadForm.email" placeholder="correo@ejemplo.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Teléfono</label>
+                        <input type="text" x-model="leadForm.phone" placeholder="5544332211" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Fecha de Nacimiento</label>
+                        <input type="date" x-model="leadForm.dob" @change="calculateLeadAge(leadForm)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Edad Calculada</label>
+                        <input type="text" x-model="leadForm.ageCalc" readonly placeholder="Automática" class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 font-semibold focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Etapa Inicial</label>
+                    <select x-model="leadForm.stageId" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                        <template x-for="s in crmStages" :key="s.id">
+                            <option :value="s.id" x-text="s.name"></option>
+                        </template>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button @click="isAddLeadModalOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 font-semibold rounded-xl text-xs">Cancelar</button>
+                <button @click="saveLeadModal()" class="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Prospecto</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AGREGAR CENTRO -->
+    <div x-show="isAddCenterModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-sm">Registrar Centro Educativo</h3>
+                <button @click="isAddCenterModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Nombre del Centro</label>
+                    <input type="text" x-model="centerForm.name" placeholder="Ej. Namii Centro Del Valle" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Ubicación / Dirección</label>
+                    <input type="text" x-model="centerForm.location" placeholder="Ej. Av. Universidad 1200" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button @click="isAddCenterModalOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 font-semibold rounded-xl text-xs">Cancelar</button>
+                <button @click="saveCenterModal()" class="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white font-semibold rounded-xl text-xs shadow-md">Guardar Centro</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHILD PROFILE DRAWER -->
+    <div x-show="isChildDrawerOpen" x-cloak class="fixed inset-0 z-50 overflow-hidden">
+        <div @click="isChildDrawerOpen = false" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"></div>
+        <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <div class="w-screen max-w-md bg-white shadow-2xl border-l border-slate-200 flex flex-col justify-between overflow-hidden">
+                <template x-if="selectedChildForDrawer">
+                    <div class="flex-1 flex flex-col min-h-0">
+                        <div class="p-5 border-b border-slate-100 bg-slate-50/70 flex items-start justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 rounded-full bg-teal-100 text-teal-800 font-bold flex items-center justify-center text-base" x-text="selectedChildForDrawer.name ? selectedChildForDrawer.name.charAt(0) : 'N'"></div>
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-800" x-text="selectedChildForDrawer.name + ' ' + (selectedChildForDrawer.firstLastName || '')"></h3>
+                                    <div class="flex items-center space-x-2 text-xs text-slate-500 font-medium mt-0.5">
+                                        <span class="flex items-center gap-1"><i data-lucide="cake" class="w-3.5 h-3.5 text-slate-400"></i> <span x-text="selectedChildForDrawer.age || '0m'"></span></span>
+                                        <span class="flex items-center gap-1"><i data-lucide="home" class="w-3.5 h-3.5 text-slate-400"></i> <span x-text="selectedChildForDrawer.roomName || 'Sin grupo'"></span></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button @click="isChildDrawerOpen = false" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+                        </div>
+
+                        <div class="flex border-b border-slate-200 text-xs font-semibold px-5 bg-white">
+                            <button @click="childDrawerTab = 'info'" :class="childDrawerTab === 'info' ? 'border-b-2 border-teal-600 text-teal-800' : 'text-slate-500'" class="py-3 mr-4">Información</button>
+                            <button @click="childDrawerTab = 'attendance'" :class="childDrawerTab === 'attendance' ? 'border-b-2 border-teal-600 text-teal-800' : 'text-slate-500'" class="py-3 mr-4">Asistencia</button>
+                        </div>
+
+                        <div class="p-5 flex-1 overflow-y-auto space-y-5 text-xs">
+                            <template x-if="childDrawerTab === 'info'">
+                                <div class="space-y-4">
+                                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2">
+                                        <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider text-teal-800">Información del Alumno</h4>
+                                        <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+                                            <div><span class="text-slate-400 block">Edad:</span><span class="font-bold text-slate-800" x-text="selectedChildForDrawer.age || '0m'"></span></div>
+                                            <div><span class="text-slate-400 block">Fecha Nacimiento:</span><span class="font-bold text-slate-800" x-text="selectedChildForDrawer.dob || 'Sin fecha'"></span></div>
+                                            <div><span class="text-slate-400 block">Grupo Asignado:</span><span class="font-bold text-teal-700" x-text="selectedChildForDrawer.roomName || 'Sin grupo'"></span></div>
+                                            <div><span class="text-slate-400 block">Tutor:</span><span class="font-bold text-slate-800" x-text="selectedChildForDrawer.parentName || 'Sin asignar'"></span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="childDrawerTab === 'attendance'">
+                                <div class="space-y-4">
+                                    <div class="p-6 bg-teal-50 border border-teal-200 rounded-2xl text-center space-y-2">
+                                        <h4 class="font-bold text-teal-900 text-sm">Control de Asistencia</h4>
+                                        <p class="text-xs text-teal-700">Sin registros de asistencia para este periodo.</p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- LEAD PROFILE DRAWER (CRM SIDEBAR) -->
+    <div x-show="isLeadDrawerOpen" x-cloak class="fixed inset-0 z-50 overflow-hidden">
+        <div @click="isLeadDrawerOpen = false" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"></div>
+        <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <div class="w-screen max-w-md bg-white shadow-2xl border-l border-slate-200 flex flex-col justify-between overflow-hidden">
+                <template x-if="selectedLeadForDrawer">
+                    <div class="flex-1 flex flex-col min-h-0">
+                        <div class="p-5 border-b border-slate-100 bg-white flex items-start justify-between">
+                            <div class="space-y-1.5 min-w-0 pr-3">
+                                <h3 class="text-lg font-bold text-slate-900 leading-tight truncate" x-text="selectedLeadForDrawer.childName ? (selectedLeadForDrawer.childName + ' ' + (selectedLeadForDrawer.childFirstLastName || '')) : (selectedLeadForDrawer.parentName || 'Prospecto')"></h3>
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <span class="bg-blue-50 text-blue-700 border border-blue-200/80 px-2.5 py-0.5 rounded-full text-[10px] font-bold" x-text="getStageName(selectedLeadForDrawer.stageId)"></span>
+                                    <span class="bg-cyan-50 text-cyan-700 border border-cyan-200/80 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">
+                                        <i data-lucide="snowflake" class="w-3 h-3 text-cyan-500"></i>
+                                        <span>Cold</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <button @click="isLeadDrawerOpen = false" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+
+                        <div class="flex border-b border-slate-200 text-xs font-semibold px-5 bg-white space-x-6">
+                            <button @click="leadDrawerTab = 'overview'" 
+                                    :class="leadDrawerTab === 'overview' ? 'border-b-2 border-teal-600 text-teal-800 font-bold' : 'text-slate-500 hover:text-slate-800'" 
+                                    class="py-3 flex items-center space-x-1.5 transition">
+                                <i data-lucide="file-text" class="w-4 h-4"></i>
+                                <span>Resumen</span>
+                            </button>
+
+                            <button @click="leadDrawerTab = 'activity'" 
+                                    :class="leadDrawerTab === 'activity' ? 'border-b-2 border-teal-600 text-teal-800 font-bold' : 'text-slate-500 hover:text-slate-800'" 
+                                    class="py-3 flex items-center space-x-1.5 transition">
+                                <i data-lucide="activity" class="w-4 h-4"></i>
+                                <span>Actividad</span>
+                            </button>
+
+                            <button disabled 
+                                    class="py-3 flex items-center space-x-1.5 text-slate-300 opacity-40 cursor-not-allowed select-none">
+                                <i data-lucide="check-square" class="w-4 h-4"></i>
+                                <span>Tareas <span class="bg-slate-100 px-1.5 py-0.5 rounded-full text-[10px] text-slate-400">0</span></span>
+                            </button>
+                        </div>
+
+                        <div class="p-5 flex-1 overflow-y-auto space-y-5 text-xs">
+                            <template x-if="leadDrawerTab === 'overview'">
+                                <div class="space-y-5">
+                                    <div class="space-y-3 bg-slate-50/60 p-4 rounded-2xl border border-slate-200/70">
+                                        <div>
+                                            <label class="block font-bold text-slate-700 text-[11px] mb-1">Estatus</label>
+                                            <select x-model="selectedLeadForDrawer.stageId" 
+                                                    @change="updateLeadFromDrawer()" 
+                                                    class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-teal-600 shadow-2xs">
+                                                <template x-for="st in crmStages" :key="st.id">
+                                                    <option :value="st.id" x-text="st.name"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label class="block font-bold text-slate-700 text-[11px] mb-1">Asignado a</label>
+                                            <select x-model="selectedLeadForDrawer.assignedTo" 
+                                                    @change="updateLeadFromDrawer()" 
+                                                    class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-teal-600 shadow-2xs">
+                                                <option value="">Sin asignar</option>
+                                                <option value="Administrador">Administrador</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="pt-1">
+                                            <button @click="showToast('Recorrido agendado'); logLeadActivity('Recorrido agendado');" class="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 font-bold px-3 py-2 rounded-xl text-xs flex items-center justify-center space-x-2 shadow-2xs transition">
+                                                <i data-lucide="calendar" class="w-4 h-4 text-teal-600"></i>
+                                                <span>Agendar recorrido</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2 pt-2 border-t border-slate-100">
+                                        <h4 class="font-bold text-slate-800 text-xs">Información de Contacto</h4>
+                                        <div class="space-y-2 text-[11px]">
+                                            <div class="flex justify-between items-center py-1 border-b border-slate-50">
+                                                <span class="text-slate-400">Nombre Tutor:</span>
+                                                <span class="font-bold text-slate-800" x-text="selectedLeadForDrawer.parentName || 'No especificado'"></span>
+                                            </div>
+                                            <div class="flex justify-between items-center py-1 border-b border-slate-50">
+                                                <span class="text-slate-400">Email:</span>
+                                                <span class="font-medium text-slate-600" x-text="selectedLeadForDrawer.email || 'No registrado'"></span>
+                                            </div>
+                                            <div class="flex justify-between items-center py-1 border-b border-slate-50">
+                                                <span class="text-slate-400">Teléfono:</span>
+                                                <span class="font-bold text-slate-800" x-text="selectedLeadForDrawer.phone || 'No registrado'"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2 pt-2 border-t border-slate-100">
+                                        <h4 class="font-bold text-slate-800 text-xs">Información del Niño</h4>
+                                        <div class="space-y-2 text-[11px]">
+                                            <div class="flex justify-between items-center py-1 border-b border-slate-50">
+                                                <span class="text-slate-400">Nombre Niño:</span>
+                                                <span class="font-bold text-slate-800" x-text="selectedLeadForDrawer.childName || 'No especificado'"></span>
+                                            </div>
+                                            <div class="flex justify-between items-center py-1 border-b border-slate-50">
+                                                <span class="text-slate-400">Fecha de Nacimiento:</span>
+                                                <span class="font-bold text-slate-800" x-text="selectedLeadForDrawer.dob || 'Sin fecha'"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="leadDrawerTab === 'activity'">
+                                <div class="space-y-4">
+                                    <div class="space-y-2">
+                                        <textarea x-model="leadActivityInput" placeholder="Escribe una nota o registra una actividad..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs focus:outline-none focus:border-teal-600 h-20 resize-none"></textarea>
+                                        <button @click="submitLeadActivity()" class="w-full bg-teal-700 hover:bg-teal-800 text-white font-bold py-2 rounded-xl text-xs transition">
+                                            Guardar Actividad
+                                        </button>
+                                    </div>
+
+                                    <div class="space-y-3 pt-3 border-t border-slate-100">
+                                        <h4 class="font-bold text-slate-800 text-xs">Historial de Actividades</h4>
+                                        <div class="space-y-2">
+                                            <template x-for="(act, idx) in (selectedLeadForDrawer.activities || [])" :key="idx">
+                                                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1">
+                                                    <div class="flex justify-between items-center text-[10px] text-slate-400">
+                                                        <span class="font-bold text-teal-700" x-text="act.author || 'Administrador'"></span>
+                                                        <span x-text="act.timestamp || 'Reciente'"></span>
+                                                    </div>
+                                                    <p class="text-xs text-slate-700 font-medium" x-text="act.text"></p>
+                                                </div>
+                                            </template>
+
+                                            <template x-if="!selectedLeadForDrawer.activities || selectedLeadForDrawer.activities.length === 0">
+                                                <div class="p-4 bg-slate-50/70 border border-dashed border-slate-200 text-center text-slate-400 text-xs rounded-xl font-medium">
+                                                    No hay actividades registradas aún.
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div x-show="toast.visible" x-cloak x-transition 
+         class="fixed top-5 right-5 z-50 bg-slate-800 text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-xl flex items-center space-x-2 border border-slate-700">
+        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+        <span x-text="toast.message"></span>
+    </div>
+
+    <script>
+        function namiApp() {
+            return {
+                currentView: 'dashboard',
+                childrenTab: 'familia',
+                isOrgOpen: true,
+                isSearchOpen: false,
+
+                // Modales
+                isAddRoomModalOpen: false,
+                isAssignStaffModalOpen: false,
+                isEnrollChildModalOpen: false,
+                isAddFamilyModalOpen: false,
+                isAddChildModalOpen: false,
+                isAddLeadModalOpen: false,
+                isAddCenterModalOpen: false,
+                isChildDrawerOpen: false,
+                isLeadDrawerOpen: false,
+
+                // CRM States
+                crmViewMode: 'board',
+                crmTimeFilter: 'week',
+                leadSearchQuery: '',
+                draggedLeadId: null,
+                selectedLeadForDrawer: null,
+                leadDrawerTab: 'overview',
+                leadActivityInput: '',
+
+                leadForm: {
+                    id: null,
+                    childName: '',
+                    childFirstLastName: '',
+                    childSecondLastName: '',
+                    parentName: '',
+                    parentFirstLastName: '',
+                    parentSecondLastName: '',
+                    email: '',
+                    phone: '',
+                    dob: '',
+                    ageCalc: '',
+                    stageId: 'contacted',
+                    createdAt: 'hace un momento'
+                },
+
+                familyForm: {
+                    id: null,
+                    name: '',
+                    nameInput: '',
+                    firstLastNameInput: '',
+                    secondLastNameInput: '',
+                    email: '',
+                    phone: ''
+                },
+
+                childForm: {
+                    id: null,
+                    name: '',
+                    firstLastName: '',
+                    secondLastName: '',
+                    familyId: '',
+                    dob: '',
+                    age: '',
+                    gender: 'Niño',
+                    roomId: null,
+                    roomName: null,
+                    archived: false
+                },
+
+                centerForm: {
+                    id: null,
+                    name: '',
+                    location: ''
+                },
+
+                editingRoom: null,
+                targetRoomForStaff: null,
+                targetRoomForChild: null,
+
+                roomForm: {
+                    id: null,
+                    name: '',
+                    ageGroup: '',
+                    capacity: 35,
+                    ratio: '1:6',
+                    staffIds: [],
+                    enrolledChildIds: []
+                },
+
+                roomSearchQuery: '',
+                familySearchQuery: '',
+                childSearchQuery: '',
+                childStatusFilter: 'active',
+
+                selectedChildForDrawer: null,
+                childDrawerTab: 'info',
+
+                toast: { visible: false, message: '' },
+
+                centers: [],
+                staff: [],
+                rooms: [],
+                families: [],
+                children: [],
+                leads: [],
+
+                crmStages: [
+                    { id: 'contacted', name: 'CONTACTADO', dotColor: 'bg-blue-500', barColor: 'bg-blue-500' },
+                    { id: 'schedule_sample', name: 'AGENDAR CLASE MUESTRA', dotColor: 'bg-purple-500', barColor: 'bg-purple-500' },
+                    { id: 'sample_class', name: 'CLASE MUESTRA', dotColor: 'bg-indigo-500', barColor: 'bg-indigo-500' },
+                    { id: 'pending', name: 'PENDIENTE', dotColor: 'bg-amber-500', barColor: 'bg-amber-500' },
+                    { id: 'enrolled', name: 'INSCRITO', dotColor: 'bg-emerald-500', barColor: 'bg-emerald-500' },
+                    { id: 'lost', name: 'PERDIDO', dotColor: 'bg-rose-500', barColor: 'bg-rose-500' }
+                ],
+
+                get filteredLeadsList() {
+                    if (!this.leadSearchQuery) return this.leads;
+                    const query = this.leadSearchQuery.toLowerCase();
+                    return this.leads.filter(l => 
+                        (l.childName && l.childName.toLowerCase().includes(query)) ||
+                        (l.parentName && l.parentName.toLowerCase().includes(query)) ||
+                        (l.phone && l.phone.includes(query)) ||
+                        (l.email && l.email.toLowerCase().includes(query))
+                    );
+                },
+
+                getStageName(stageId) {
+                    const st = this.crmStages.find(s => s.id === stageId);
+                    return st ? st.name : 'CONTACTADO';
+                },
+
+                getLeadsByStage(stageId) {
+                    return this.filteredLeadsList.filter(l => l.stageId === stageId);
+                },
+
+                getFunnelCount(stageId) {
+                    return this.leads.filter(l => l.stageId === stageId).length;
+                },
+
+                getFunnelWidth(stageId) {
+                    const count = this.getFunnelCount(stageId);
+                    if (this.leads.length === 0) return 0;
+                    return Math.min(Math.round((count / this.leads.length) * 100), 100);
+                },
+
+                getFunnelPct(stageId) {
+                    if (this.leads.length === 0) return 0;
+                    return Math.round((this.getFunnelCount(stageId) / this.leads.length) * 100);
+                },
+
+                openLeadDrawer(lead) {
+                    if (!lead) return;
+                    this.selectedLeadForDrawer = lead;
+                    if (!this.selectedLeadForDrawer.activities) {
+                        this.selectedLeadForDrawer.activities = [];
+                    }
+                    this.leadDrawerTab = 'overview';
+                    this.isLeadDrawerOpen = true;
+                    this.refreshIcons();
+                },
+
+                updateLeadFromDrawer() {
+                    if (this.selectedLeadForDrawer) {
+                        if (window.saveLeadToFirestore) window.saveLeadToFirestore(this.selectedLeadForDrawer);
+                        this.showToast('Prospecto actualizado');
+                    }
+                },
+
+                submitLeadActivity() {
+                    if (!this.leadActivityInput.trim()) return;
+                    this.logLeadActivity(this.leadActivityInput.trim());
+                    this.leadActivityInput = '';
+                },
+
+                logLeadActivity(text) {
+                    if (!this.selectedLeadForDrawer) return;
+                    if (!this.selectedLeadForDrawer.activities) {
+                        this.selectedLeadForDrawer.activities = [];
+                    }
+                    this.selectedLeadForDrawer.activities.unshift({
+                        author: 'Administrador',
+                        timestamp: 'hace un momento',
+                        text: text
+                    });
+                    if (window.saveLeadToFirestore) window.saveLeadToFirestore(this.selectedLeadForDrawer);
+                    this.showToast('Actividad registrada');
+                },
+
+                calculateChildAge(form) {
+                    if (!form.dob) return;
+                    const birthDate = new Date(form.dob);
+                    const today = new Date();
+                    let months = (today.getFullYear() - birthDate.getFullYear()) * 12 + (today.getMonth() - birthDate.getMonth());
+                    if (today.getDate() < birthDate.getDate()) months--;
+                    if (months < 0) months = 0;
+
+                    if (months < 12) {
+                        form.age = `${months} meses`;
+                    } else {
+                        const years = Math.floor(months / 12);
+                        const remMonths = months % 12;
+                        form.age = remMonths > 0 ? `${years} años ${remMonths}m` : `${years} años`;
+                    }
+                },
+
+                calculateLeadAge(form) {
+                    if (!form.dob) return;
+                    const birthDate = new Date(form.dob);
+                    const today = new Date();
+                    let months = (today.getFullYear() - birthDate.getFullYear()) * 12 + (today.getMonth() - birthDate.getMonth());
+                    if (today.getDate() < birthDate.getDate()) months--;
+                    if (months < 0) months = 0;
+
+                    if (months < 12) {
+                        form.ageCalc = `${months} meses`;
+                    } else {
+                        const years = Math.floor(months / 12);
+                        const remMonths = months % 12;
+                        form.ageCalc = remMonths > 0 ? `${years} años ${remMonths}m` : `${years} años`;
+                    }
+                },
+
+                openAddLeadModal() {
+                    this.leadForm = {
+                        id: Date.now(),
+                        childName: '',
+                        childFirstLastName: '',
+                        childSecondLastName: '',
+                        parentName: '',
+                        parentFirstLastName: '',
+                        parentSecondLastName: '',
+                        email: '',
+                        phone: '',
+                        dob: '',
+                        ageCalc: '',
+                        stageId: 'contacted',
+                        createdAt: 'hace un momento'
+                    };
+                    this.isAddLeadModalOpen = true;
+                },
+
+                saveLeadModal() {
+                    if (!this.leadForm.childName.trim() && !this.leadForm.parentName.trim()) {
+                        this.showToast('Ingresa al menos un nombre');
+                        return;
+                    }
+
+                    const newLead = { ...this.leadForm };
+                    this.leads.push(newLead);
+                    if (window.saveLeadToFirestore) window.saveLeadToFirestore(newLead);
+
+                    this.isAddLeadModalOpen = false;
+                    this.showToast('Nuevo prospecto registrado');
+                    this.refreshIcons();
+                },
+
+                moveLeadStage(lead, newStageId) {
+                    lead.stageId = newStageId;
+                    if (window.saveLeadToFirestore) window.saveLeadToFirestore(lead);
+                    this.showToast('Etapa del prospecto actualizada');
+                },
+
+                dropLeadToStage(targetStageId) {
+                    if (!this.draggedLeadId) return;
+                    const lead = this.leads.find(l => String(l.id) === String(this.draggedLeadId));
+                    if (lead && lead.stageId !== targetStageId) {
+                        lead.stageId = targetStageId;
+                        if (window.saveLeadToFirestore) window.saveLeadToFirestore(lead);
+                        this.showToast('Etapa del prospecto actualizada');
+                    }
+                    this.draggedLeadId = null;
+                },
+
+                deleteLead(lead) {
+                    if (confirm(`¿Eliminar prospecto "${lead.childName || lead.parentName}"?`)) {
+                        this.leads = this.leads.filter(l => l.id !== lead.id);
+                        if (window.deleteLeadFromFirestore) window.deleteLeadFromFirestore(lead.id);
+                        this.showToast('Prospecto eliminado');
+                    }
+                },
+
+                openAddFamilyModal() {
+                    this.familyForm = {
+                        id: Date.now(),
+                        name: '',
+                        nameInput: '',
+                        firstLastNameInput: '',
+                        secondLastNameInput: '',
+                        email: '',
+                        phone: ''
+                    };
+                    this.isAddFamilyModalOpen = true;
+                },
+
+                saveFamilyModal() {
+                    if (!this.familyForm.name.trim()) {
+                        this.showToast('Ingresa el nombre de la familia');
+                        return;
+                    }
+                    const newFam = { ...this.familyForm };
+                    this.families.push(newFam);
+                    if (window.saveFamilyToFirestore) window.saveFamilyToFirestore(newFam);
+                    this.isAddFamilyModalOpen = false;
+                    this.showToast('Familia registrada correctamente');
+                    this.refreshIcons();
+                },
+
+                openAddChildModal() {
+                    this.childForm = {
+                        id: Date.now(),
+                        name: '',
+                        firstLastName: '',
+                        secondLastName: '',
+                        familyId: '',
+                        dob: '',
+                        age: '',
+                        gender: 'Niño',
+                        roomId: null,
+                        roomName: null,
+                        archived: false
+                    };
+                    this.isAddChildModalOpen = true;
+                },
+
+                saveChildModal() {
+                    if (!this.childForm.name.trim()) {
+                        this.showToast('Ingresa el nombre del niño');
+                        return;
+                    }
+                    const fam = this.families.find(f => String(f.id) === String(this.childForm.familyId));
+                    const newChild = {
+                        ...this.childForm,
+                        parentName: fam ? `${fam.nameInput} ${fam.firstLastNameInput || ''}` : 'Tutor general'
+                    };
+                    this.children.push(newChild);
+                    if (window.saveChildToFirestore) window.saveChildToFirestore(newChild);
+                    this.isAddChildModalOpen = false;
+                    this.showToast('Niño registrado correctamente');
+                    this.refreshIcons();
+                },
+
+                openAddCenterModal() {
+                    this.centerForm = { id: Date.now(), name: '', location: '' };
+                    this.isAddCenterModalOpen = true;
+                },
+
+                saveCenterModal() {
+                    if (!this.centerForm.name.trim()) {
+                        this.showToast('Ingresa el nombre del centro');
+                        return;
+                    }
+                    const newCenter = { ...this.centerForm };
+                    this.centers.push(newCenter);
+                    if (window.saveCenterToFirestore) window.saveCenterToFirestore(newCenter);
+                    this.isAddCenterModalOpen = false;
+                    this.showToast('Centro educativo registrado');
+                    this.refreshIcons();
+                },
+
+                initApp() {
+                    window.addEventListener('rooms-updated', (e) => {
+                        if (e.detail && Array.isArray(e.detail)) {
+                            this.rooms = e.detail;
+                            this.refreshIcons();
+                        }
+                    });
+
+                    window.addEventListener('families-updated', (e) => {
+                        if (e.detail && Array.isArray(e.detail)) {
+                            this.families = e.detail;
+                            this.refreshIcons();
+                        }
+                    });
+
+                    window.addEventListener('children-updated', (e) => {
+                        if (e.detail && Array.isArray(e.detail)) {
+                            this.children = e.detail;
+                            this.refreshIcons();
+                        }
+                    });
+
+                    window.addEventListener('leads-updated', (e) => {
+                        if (e.detail && Array.isArray(e.detail)) {
+                            this.leads = e.detail;
+                            this.refreshIcons();
+                        }
+                    });
+
+                    window.addEventListener('staff-updated', (e) => {
+                        if (e.detail && Array.isArray(e.detail)) {
+                            this.staff = e.detail;
+                            this.refreshIcons();
+                        }
+                    });
+
+                    window.addEventListener('centers-updated', (e) => {
+                        if (e.detail && Array.isArray(e.detail)) {
+                            this.centers = e.detail;
+                            this.refreshIcons();
+                        }
+                    });
+
+                    this.$nextTick(() => this.refreshIcons());
+                    this.$watch('currentView', () => this.refreshIcons());
+                    this.$watch('childrenTab', () => this.refreshIcons());
+                },
+
+                refreshIcons() {
+                    this.$nextTick(() => {
+                        if (window.lucide) lucide.createIcons();
+                    });
+                },
+
+                get filteredRoomsList() {
+                    if (!this.roomSearchQuery) return this.rooms;
+                    return this.rooms.filter(r => 
+                        r.name.toLowerCase().includes(this.roomSearchQuery.toLowerCase()) || 
+                        (r.ageGroup && r.ageGroup.toLowerCase().includes(this.roomSearchQuery.toLowerCase()))
+                    );
+                },
+
+                openAddRoomModal() {
+                    this.editingRoom = null;
+                    this.roomForm = {
+                        id: Date.now(),
+                        name: '',
+                        ageGroup: '',
+                        capacity: 35,
+                        ratio: '1:6',
+                        staffIds: [],
+                        enrolledChildIds: []
+                    };
+                    this.isAddRoomModalOpen = true;
+                },
+
+                openEditRoomModal(room) {
+                    this.editingRoom = room;
+                    this.roomForm = JSON.parse(JSON.stringify(room));
+                    this.isAddRoomModalOpen = true;
+                },
+
+                saveRoomModal() {
+                    if (!this.roomForm.name.trim()) {
+                        this.showToast('Por favor escribe un nombre para el grupo');
+                        return;
+                    }
+
+                    if (this.editingRoom) {
+                        Object.assign(this.editingRoom, this.roomForm);
+                        if (window.saveRoomToFirestore) window.saveRoomToFirestore(this.editingRoom);
+                        this.showToast('Grupo actualizado correctamente');
+                    } else {
+                        const newRoom = { ...this.roomForm };
+                        this.rooms.push(newRoom);
+                        if (window.saveRoomToFirestore) window.saveRoomToFirestore(newRoom);
+                        this.showToast('Nuevo grupo creado');
+                    }
+
+                    this.isAddRoomModalOpen = false;
+                    this.refreshIcons();
+                },
+
+                confirmDeleteRoom(room) {
+                    if (confirm(`¿Estás seguro de eliminar el grupo "${room.name}"?`)) {
+                        this.rooms = this.rooms.filter(r => r.id !== room.id);
+                        if (window.deleteRoomFromFirestore) window.deleteRoomFromFirestore(room.id);
+                        this.showToast('Grupo eliminado');
+                    }
+                },
+
+                getRoomStaff(room) {
+                    if (!room.staffIds) return [];
+                    return this.staff.filter(s => room.staffIds.includes(s.id));
+                },
+
+                openAssignStaffModal(room) {
+                    this.targetRoomForStaff = room;
+                    this.isAssignStaffModalOpen = true;
+                },
+
+                assignStaffToRoom(room, staffId) {
+                    if (!room.staffIds) room.staffIds = [];
+                    if (!room.staffIds.includes(staffId)) {
+                        room.staffIds.push(staffId);
+                        if (window.saveRoomToFirestore) window.saveRoomToFirestore(room);
+                        this.showToast('Personal asignado al grupo');
+                    }
+                    this.isAssignStaffModalOpen = false;
+                    this.refreshIcons();
+                },
+
+                unassignStaffFromRoom(room, staffId) {
+                    if (!room.staffIds) return;
+                    room.staffIds = room.staffIds.filter(id => id !== staffId);
+                    if (window.saveRoomToFirestore) window.saveRoomToFirestore(room);
+                    this.showToast('Personal desasignado');
+                    this.refreshIcons();
+                },
+
+                getRoomEnrolledChildren(room) {
+                    return this.children.filter(c => 
+                        (room.enrolledChildIds && room.enrolledChildIds.includes(c.id)) || 
+                        c.roomId === room.id || 
+                        c.roomName === room.name
+                    );
+                },
+
+                openEnrollChildModal(room) {
+                    this.targetRoomForChild = room;
+                    this.isEnrollChildModalOpen = true;
+                },
+
+                enrollChildToRoom(room, childId) {
+                    const child = this.children.find(c => c.id === childId);
+                    if (child) {
+                        child.roomId = room.id;
+                        child.roomName = room.name;
+                        if (!room.enrolledChildIds) room.enrolledChildIds = [];
+                        if (!room.enrolledChildIds.includes(childId)) {
+                            room.enrolledChildIds.push(childId);
+                        }
+                        if (window.saveChildToFirestore) window.saveChildToFirestore(child);
+                        if (window.saveRoomToFirestore) window.saveRoomToFirestore(room);
+                        this.showToast(`${child.name} inscrito en ${room.name}`);
+                    }
+                    this.isEnrollChildModalOpen = false;
+                    this.refreshIcons();
+                },
+
+                unenrollChildFromRoom(room, childId) {
+                    const child = this.children.find(c => c.id === childId);
+                    if (child) {
+                        child.roomId = null;
+                        child.roomName = null;
+                        if (window.saveChildToFirestore) window.saveChildToFirestore(child);
+                    }
+                    if (room.enrolledChildIds) {
+                        room.enrolledChildIds = room.enrolledChildIds.filter(id => id !== childId);
+                        if (window.saveRoomToFirestore) window.saveRoomToFirestore(room);
+                    }
+                    this.showToast('Alumno dado de baja del grupo');
+                    this.refreshIcons();
+                },
+
+                get filteredFamiliesList() {
+                    if (!this.familySearchQuery) return this.families;
+                    return this.families.filter(f => f.name.toLowerCase().includes(this.familySearchQuery.toLowerCase()) || f.nameInput.toLowerCase().includes(this.familySearchQuery.toLowerCase()));
+                },
+
+                get filteredChildrenList() {
+                    return this.children.filter(c => {
+                        const matchesQuery = !this.childSearchQuery || c.name.toLowerCase().includes(this.childSearchQuery.toLowerCase()) || (c.parentName && c.parentName.toLowerCase().includes(this.childSearchQuery.toLowerCase()));
+                        const matchesStatus = this.childStatusFilter === 'archived' ? c.archived : !c.archived;
+                        return matchesQuery && matchesStatus;
+                    });
+                },
+
+                getChildrenForFamily(familyId) {
+                    return this.children.filter(c => String(c.familyId) === String(familyId));
+                },
+
+                openChildDrawer(child) {
+                    this.selectedChildForDrawer = child;
+                    this.childDrawerTab = 'info';
+                    this.isChildDrawerOpen = true;
+                    this.refreshIcons();
+                },
+
+                archiveChild(child) {
+                    child.archived = true;
+                    if (window.saveChildToFirestore) window.saveChildToFirestore(child);
+                    this.showToast('Alumno archivado correctamente');
+                },
+
+                showToast(msg) {
+                    this.toast.message = msg;
+                    this.toast.visible = true;
+                    setTimeout(() => { this.toast.visible = false; }, 3000);
+                }
+            };
+        }
+    </script>
+</body>
+</html>
